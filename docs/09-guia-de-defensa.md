@@ -65,12 +65,13 @@ Preparación: API con datos de demo (`pnpm db:reiniciar`), `NOTIFICACIONES=expo`
 3. **Reservar:** iniciar sesión con `emiliano@mail.com` / `villaguay2026` → turno libre →
    confirmar → mostrar el QR.
 4. **Sin señal:** modo avión → Mis Reservas muestra el cartel y el QR guardado.
-5. **Doble reserva:** con el segundo teléfono, intentar el mismo turno → error de turno
-   ocupado. *(Ojo: ver B-01; si el mensaje sale como `[object Object]`, corregirlo antes.)*
+5. **Doble reserva:** con el segundo teléfono, intentar el mismo turno → "Ese turno ya fue
+   reservado." con el botón *Ver otros turnos*.
 6. **Notificación:** con Swagger, loguearse como encargado y `POST /bloqueos` sobre un turno
    reservado por el teléfono → llega "Reserva cancelada" → tocar → abre Mis Reservas.
-7. **Escáner:** abrir el escáner (huella) y mostrar la cámara. *(Decir con claridad que el
-   registro del ingreso aún está simulado: B-03.)*
+7. **Escáner:** ingresar como encargado (`marcelo@villaguay.demo.ar`), abrir el escáner (ícono
+   QR, huella) y escanear el QR de la reserva del otro teléfono → "¡Ingreso autorizado!".
+   Escanearlo de nuevo → "Ingreso rechazado" (ya ingresó).
 
 > **Plan B si algo falla en vivo:** mostrar `pnpm test:notificaciones` (25 tests en verde) y
 > los logs de la API con `NOTIFICACIONES=registro`.
@@ -88,8 +89,8 @@ privadas y alquiler de elementos: el PRD los excluye de la primera versión. La 
 precio pero no cobra.
 
 **¿Qué requisitos del PRD no pudieron cumplir?** Hay que responder con la tabla de
-[08 §3](08-estado-actual-y-deuda-tecnica.md): registro real del ingreso, ausentes, recordatorio
-local, pantallas del personal, caché de fotos y build EAS. Y explicar cómo se cerrarían.
+[08 §3](08-estado-actual-y-deuda-tecnica.md): marcar ausentes, recordatorio local, pantallas
+del personal (bloqueos, fijas, agenda, precio), caché de fotos y build EAS. Y explicar cómo se cerrarían.
 
 **¿Cómo se organizó el trabajo?** (Completar con el reparto real.) La secuencia técnica fue:
 base y navegación → catálogo → disponibilidad y reserva → sesión → Mis reservas y offline →
@@ -194,21 +195,22 @@ los corre en 4 motores de base de datos. La app se probó manualmente con el pla
 respuesta. El servidor compara en tiempo constante y simula la verificación aunque el email no
 exista (evita enumerar usuarios).
 
-**¿Qué riesgos de seguridad ven en la app?** Credenciales de demo en el código (B-05),
-`http://` en desarrollo, y no se maneja el vencimiento del token (B-10).
+**¿Qué riesgos de seguridad ven en la app?** `http://` en desarrollo (en producción debe ser
+`https://`) y que el token dura 30 días sin renovación (al vencer, la app cierra la sesión sola).
 
 ### Preguntas "trampa"
 
-**"Mostrame el código que valida el QR en la app."** No hay validación en la app: la valida la
-API (`POST /ingresos`); la app aún usa una simulación (B-03). Mostrar las reglas en
+**"Mostrame el código que valida el QR en la app."** La app no valida: manda el código a
+`POST /ingresos` (`registrarIngresoApi`) y muestra el mensaje de la API. Las reglas (código
+inexistente, de otro día, de otra cancha, ya usado, fuera de horario) están en
 `check-ins/rules/check-in.ts`.
 
 **"¿Por qué el filtro por deporte se hace en la app si la API filtra?"** Porque con 11 espacios
 es más simple y rápido filtrar en memoria; sería necesario filtrar en el servidor con cientos
 de espacios (D-03).
 
-**"Si cambia la IP de la computadora, ¿qué pasa?"** Hay que cambiarla en `auth.ts` y
-`reservas.ts` (D-01). En producción la app apuntaría a la URL pública de la API (Render).
+**"Si cambia la IP de la computadora, ¿qué pasa?"** Se cambia `EXPO_PUBLIC_API_URL` en el
+`.env.local` de la app y se reinicia Expo con `-c`. En producción la app apuntaría a la URL pública de la API (Render).
 
 **"¿Y si dos encargados bloquean a la vez el mismo turno?"** El bloqueo corre en una
 transacción; cancelar una reserva dos veces es idempotente a nivel de estado (queda cancelada).

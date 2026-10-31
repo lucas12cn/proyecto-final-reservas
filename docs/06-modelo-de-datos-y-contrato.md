@@ -197,12 +197,12 @@ Tipos que agrega la API (`contract/api.ts`): `Meta`, `RespuestaLista<T>`, `Respu
 | GET | `/reservas/:id` | 🔒 | — | Una reserva (dueño o personal) |
 | POST | `/reservas/:id/cancelacion` | 🔒 | ✅ | Cancela (hasta `cancelableHasta`) |
 | GET | `/reservas` | 🧑‍🔧 | — | Reservas de todos (`fecha`, `espacioId`, `estado`) |
-| POST | `/ingresos` | 🧑‍🔧 | ❌ (simulado) | `{ codigoQr, espacioId }` → reserva `cumplida` |
+| POST | `/ingresos` | 🧑‍🔧 | ✅ | `{ codigoQr, espacioId }` → reserva `cumplida` |
 | POST | `/reservas/:id/ausente` | 🧑‍🔧 | — | "No se presentó" |
 | GET | `/agenda` | 🧑‍🔧 | — | Turnos de todos los espacios en un día |
 | GET | `/usuarios/:id` | 🧑‍🔧 | — | Usuario con teléfono |
 | POST / GET / DELETE | `/bloqueos` | 🧑‍🔧 | — | Bloquear, listar, quitar |
-| GET | `/fijas` | 🧑‍🔧 | ⚠️ (sin sesión: 401, la app lo traga) | Reservas fijas |
+| GET | `/fijas` | 🧑‍🔧 | — | Reservas fijas |
 | POST / PATCH / DELETE | `/fijas` · `/fijas/:id` | 🛡 | — | Alta, edición, baja de fijas |
 | PATCH | `/espacios/:id` | 🛡 | — | `{ precioPorHora }` |
 | POST | `/archivos` | 🔒 | ❌ | Subir foto/audio/video |
@@ -221,8 +221,8 @@ Tipos que agrega la API (`contract/api.ts`): `Meta`, `RespuestaLista<T>`, `Respu
 3. Un fallo de red es distinto de un error de la API: no hay cuerpo. La app lo detecta antes
    con `Network.getNetworkStateAsync()`.
 
-> La app **no** cumple del todo con (1): ver el error [B-01] en
-> [08](08-estado-actual-y-deuda-tecnica.md).
+> La app lo hace con `servicios/errores.ts` (`lanzarSiError`, `codigoDe`, `mensajeDe`): ver
+> [04 §3.5](04-app-movil.md).
 
 ## 5. Datos de demo
 

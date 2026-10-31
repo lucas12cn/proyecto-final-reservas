@@ -75,18 +75,19 @@ necesitás en el paso siguiente. (Con Docker, buscala con `ipconfig` / `ifconfig
 
 ### 3.2 Configurar la dirección de la API en la app
 
-La dirección de la API está escrita a mano en **dos** archivos de la app. Cambiá la IP en ambos
-por la de tu computadora:
+La app lee la dirección de la API de la variable `EXPO_PUBLIC_API_URL`. Copiá el ejemplo y
+poné la IP de tu computadora (la que imprime la API al arrancar):
 
-| Archivo | Constante |
-|---|---|
-| `my-app/src/servicios/auth.ts` | `BASE_URL` |
-| `my-app/src/servicios/reservas.ts` | `API_URL` |
+```bash
+cd my-app
+cp .env.example .env.local     # en Windows: copy .env.example .env.local
+# editar .env.local →  EXPO_PUBLIC_API_URL=http://192.168.0.10:3000
+```
 
-Ejemplo: `export const BASE_URL = 'http://192.168.0.10:3000';`
-
-> Es una deuda técnica conocida (ver [`docs/08-estado-actual-y-deuda-tecnica.md`](docs/08-estado-actual-y-deuda-tecnica.md)):
-> debería ser una sola constante leída de una variable de entorno.
+`.env.local` lo ignora git: cada integrante usa su propia IP. Sin ese archivo la app usa
+`http://192.168.1.6:3000` (valor por defecto de `my-app/src/servicios/config.ts`). Las
+variables `EXPO_PUBLIC_*` se leen al **iniciar** Expo: si cambiás la IP, reiniciá con
+`npx expo start -c`.
 
 ### 3.3 Levantar la app
 
@@ -110,8 +111,7 @@ Todos con contraseña **`villaguay2026`** (todo en minúscula).
 | `marcelo@villaguay.demo.ar` | encargado | Agenda, ingresos, bloqueos |
 | `nahuel@villaguay.demo.ar` | administrador | Todo, más reservas fijas y precios |
 
-> ⚠️ La pantalla de entrada de la app (`my-app/src/app/index.tsx`) viene con la contraseña
-> precargada como `Villaguay2026` (con V mayúscula) y **eso falla**: escribí `villaguay2026`.
+> Los campos de ingreso de la app arrancan vacíos: escribí el email y la contraseña.
 
 ## 4. Notificaciones push
 
@@ -163,8 +163,8 @@ Para que lleguen de verdad:
 
 | Síntoma | Causa probable y solución |
 |---|---|
-| La app muestra listas vacías o "Sin conexión a internet o red local" | La IP de `auth.ts`/`reservas.ts` no es la de tu computadora, o API apagada, o distinta red wifi |
-| `Credenciales inválidas` con `emiliano@mail.com` | La contraseña correcta es `villaguay2026` (minúsculas) |
+| La app muestra listas vacías o "Sin conexión a internet o red local" | `EXPO_PUBLIC_API_URL` (`.env.local`) no es la IP de tu computadora, no reiniciaste Expo con `-c`, la API está apagada o están en redes wifi distintas |
+| `El email o la contraseña no son correctos.` con `emiliano@mail.com` | La contraseña correcta es `villaguay2026` (todo en minúscula) |
 | `NO_AUTENTICADO` después de `pnpm db:reiniciar` | El usuario se borró y se recreó: cerrar sesión e ingresar de nuevo |
 | `EADDRINUSE :::3000` | Ya hay una API corriendo en el puerto 3000 |
 | `Could not locate the bindings file` (better-sqlite3) | Repetir `pnpm install` con Node 24, o usar Docker |

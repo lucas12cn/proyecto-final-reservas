@@ -1,9 +1,11 @@
 import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';
+import { API_URL as BASE_URL } from './config';
+import { errorSinSesion, lanzarSiError } from './errores';
 
-// Separamos la IP base para poder usarla en /auth y en /yo
-export const BASE_URL = 'http://192.168.1.6:3000';
-const API_URL = `${BASE_URL}/auth`;
+// BASE_URL se sigue exportando (la usa notificaciones.ts); ahora viene de config.ts.
+export { BASE_URL };
+const AUTH_URL = `${BASE_URL}/auth`;
 
 const verificarConexion = async () => {
   const red = await Network.getNetworkStateAsync();
@@ -12,35 +14,35 @@ const verificarConexion = async () => {
 
 export const iniciarSesionApi = async (email: string, contrasena: string) => {
   await verificarConexion();
-  const respuesta = await fetch(`${API_URL}/ingreso`, {
+  const respuesta = await fetch(`${AUTH_URL}/ingreso`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, contrasena })
   });
 
-  if (!respuesta.ok) throw new Error('Credenciales inválidas');
+  await lanzarSiError(respuesta, 'No se pudo ingresar. Probá de nuevo.');
   const json = await respuesta.json();
   return json.datos; 
 };
 
 export const registrarUsuarioApi = async (nombre: string, email: string, telefono: string, contrasena: string) => {
   await verificarConexion();
-  const respuesta = await fetch(`${API_URL}/registro`, {
+  const respuesta = await fetch(`${AUTH_URL}/registro`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ nombre, email, telefono, contrasena })
   });
 
-  if (!respuesta.ok) throw new Error('Error al registrar usuario. El email podría estar en uso.');
+  await lanzarSiError(respuesta, 'No se pudo crear la cuenta. Probá de nuevo.');
   const json = await respuesta.json();
   return json.datos; 
 };
 
-// NUEVO: Función para actualizar los datos del jugador
+// Actualiza los datos del jugador (PATCH /yo)
 export const actualizarPerfilApi = async (datos: { nombre?: string; telefono?: string }) => {
   await verificarConexion();
   const token = await SecureStore.getItemAsync('tokenReserva');
-  if (!token) throw new Error('NO_AUTENTICADO');
+  if (!token) throw errorSinSesion();
 
   const respuesta = await fetch(`${BASE_URL}/yo`, {
     method: 'PATCH',
@@ -51,10 +53,7 @@ export const actualizarPerfilApi = async (datos: { nombre?: string; telefono?: s
     body: JSON.stringify(datos)
   });
 
-  if (!respuesta.ok) {
-    const error = await respuesta.json().catch(() => ({}));
-    throw new Error(error.message || 'Error al actualizar el perfil');
-  }
+  await lanzarSiError(respuesta, 'No se pudo actualizar el perfil.');
 
   const json = await respuesta.json();
   return json.datos; // Retorna el usuario con los datos nuevos
@@ -72,7 +71,7 @@ export const registrarDispositivoApi = async (tokenExpo: string, plataforma: str
     },
     body: JSON.stringify({ tokenExpo, plataforma })
   });
-  if (!respuesta.ok) throw new Error(`No se pudo registrar el dispositivo (HTTP ${respuesta.status})`);
+  await lanzarSiError(respuesta, 'No se pudo registrar el dispositivo.');
 };
 
 // La API responde 204 aunque el token no estuviera anotado.
@@ -84,5 +83,5 @@ export const darDeBajaDispositivoApi = async (tokenExpo: string) => {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` }
   });
-  if (!respuesta.ok) throw new Error(`No se pudo dar de baja el dispositivo (HTTP ${respuesta.status})`);
+  await lanzarSiError(respuesta, 'No se pudo dar de baja el dispositivo.');
 };

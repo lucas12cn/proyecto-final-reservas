@@ -79,14 +79,14 @@ y las diferencias están en [08](08-estado-actual-y-deuda-tecnica.md).
 | RF-06 | Grilla de un espacio por día, 7 días | PRD §2 | ✅ `espacio/disponibilidad.tsx` |
 | RF-07 | Turno pasado no reservable | PRD §2 | ✅ (cliente y servidor) |
 | RF-08 | Reservas fijas visibles como ocupadas | PRD §2 | ✅ (resuelto por la API en el estado `fijo`) |
-| RF-09 | Reservar un turno libre | PRD §3 | ⚠️ funciona, pero reserva siempre por la capacidad total (no se elige la cantidad de personas) |
+| RF-09 | Reservar un turno libre | PRD §3 | ✅ con selector de cantidad de personas (1 a la capacidad) |
 | RF-10 | Ver reservas próximas e historial | PRD §3 | ✅ `(tabs)/index.tsx` |
 | RF-11 | Cancelar una reserva (hasta 4 h antes) | PRD §3 | ✅ (la regla la aplica la API) |
 | RF-12 | Marcar a quien cancela tarde | PRD §3 | ✅ contador visible en el perfil |
 | RF-13 | Máximo tres reservas activas | PRD §3 | ✅ (la API devuelve `LIMITE_DE_RESERVAS`) |
 | RF-14 | Mostrar el QR de la reserva | PRD §4 | ✅ `react-native-qrcode-svg` |
-| RF-15 | Encargado escanea el QR y se registra el ingreso | PRD §4 | ⚠️ escanea, **pero el registro es simulado** (no llama a la API) |
-| RF-16 | Mensajes claros si el código no corresponde | PRD §4 | ⚠️ dependen de RF-15 |
+| RF-15 | Encargado escanea el QR y se registra el ingreso | PRD §4 | ✅ `POST /ingresos`; el escáner es sólo para personal |
+| RF-16 | Mensajes claros si el código no corresponde | PRD §4 | ✅ se muestra el mensaje de la API |
 | RF-17 | Marcar "no se presentó" | PRD §4 | ❌ no implementado en la app |
 | RF-18 | Recordatorio 2 h antes | PRD §5 | ❌ no implementado (es una notificación **local**) |
 | RF-19 | Aviso por suspensión (bloqueo) | PRD §5 | ✅ push del servidor |
@@ -120,7 +120,7 @@ La cátedra dejó escritas las decisiones sobre los "huecos" del PRD
 | D1 | Id de turno `tur-<espacioId>-<AAAAMMDD>-<HH>` (el del PRD no incluía el espacio) | `(tabs)/index.tsx` **desarma el id** para mostrar fecha y hora (`formatearTurno`) |
 | D2 | QR = `VGY-<MMDD>-<HH>-<6 aleatorios>` | Es el valor que se dibuja como QR |
 | D3 | El jugador no puede cancelar tarde; el encargado sí (y suma "tardía") | La app muestra el mensaje de error de la API (`CANCELACION_FUERA_DE_PLAZO`) en una alerta |
-| D6 | Encargado: agenda, ingresos, ausentes, bloqueos. Administrador: además fijas y precios | La app **no** distingue roles hoy (gap) |
+| D6 | Encargado: agenda, ingresos, ausentes, bloqueos. Administrador: además fijas y precios | El escáner y su ícono son sólo para personal; el resto de las pantallas del personal sigue pendiente |
 | D7 | No hay interruptor de avisos: siempre se notifica | Para no recibir avisos de un espacio, se quita de favoritos |
 | D8 | El último turno termina en `"24:00"` | La grilla muestra `inicio` (`substring(0,5)`) |
 | D9 | "Mover" un turno = cancelar y reservar otro | Sin pantalla de "mover" |
@@ -180,7 +180,7 @@ pantalla habla directamente con la red; todo pasa por una capa de servicios así
 | Cruce de reservas, fijas y bloqueos incorrecto ("donde se decide si la app sirve") | Media | Alto | Función pura `armarGrilla` con tests; la lógica vive en el servidor, no en la app |
 | Doble reserva por pedidos simultáneos | Media | Alto | Índice único + test de dos `POST` simultáneos en los 4 motores |
 | Mala señal en la puerta de la cancha | Alta | Alto | Caché local de reservas/QR; `POST /reservas` idempotente |
-| La IP de la API cambia de red en red | Alta | Medio | IP escrita a mano (deuda técnica) → usar variable de entorno / API publicada |
+| La IP de la API cambia de red en red | Alta | Medio | `EXPO_PUBLIC_API_URL` en `.env.local` (cada integrante la suya) / API publicada |
 | Push remotas en Android no andan en Expo Go | Alta | Medio | Development build / build de EAS |
 | Dependencias de nube gratis (Render se duerme, Supabase pausa) | Media | Bajo | La app muestra estado de carga; documentado en el README de la API |
 | Alcance del PRD mayor que lo implementado | Alta | Medio | Ver trazabilidad y plan de cierre en [08](08-estado-actual-y-deuda-tecnica.md) |

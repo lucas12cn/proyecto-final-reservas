@@ -6,6 +6,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import QRCode from 'react-native-qrcode-svg';
 import { useTema } from '../../hooks/use-theme';
 import { obtenerEspacioPorId, crearReserva } from '../../servicios/reservas';
+import { codigoDe, mensajeDe } from '../../servicios/errores';
 import { Espacio } from '../../tipos';
 
 export default function ConfirmarReservaScreen() {
@@ -15,6 +16,7 @@ export default function ConfirmarReservaScreen() {
   const [espacio, setEspacio] = useState<Espacio | null>(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
+  const [personas, setPersonas] = useState(1); // cuántos van a jugar (1 a la capacidad del espacio)
   const [confirmado, setConfirmado] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
 
@@ -26,24 +28,38 @@ export default function ConfirmarReservaScreen() {
     if (!id) return;
     const data = await obtenerEspacioPorId(id);
     setEspacio(data);
+    if (data) setPersonas(data.capacidad); // por defecto, el espacio lleno; se puede bajar
     setCargando(false);
   };
 
   const confirmarReservaApi = async () => {
     setProcesando(true);
     try {
-      // 2. Enviamos el turnoId real a la API
-      const reservaGenerada = await crearReserva(turnoId as string, espacio?.capacidad || 10);
+      // El turnoId viene de la grilla; la cantidad la elige el usuario (máximo: la capacidad)
+      const reservaGenerada = await crearReserva(turnoId as string, personas);
       setQrData(reservaGenerada.codigoQr);
       setConfirmado(true);
-    } catch (error: any) {
-      if (error.message === 'NO_AUTENTICADO') {
+    } catch (error) {
+      const codigo = codigoDe(error);
+      if (codigo === 'SIN_SESION') {
+        // No hay sesión guardada: se ofrece ir a ingresar.
         Alert.alert(
-          "Falta Iniciar Sesión", 
-          "Tenés que estar logueado para poder reservar una cancha."
+          'Falta iniciar sesión',
+          'Tenés que estar logueado para poder reservar una cancha.',
+          [
+            { text: 'Ahora no', style: 'cancel' },
+            { text: 'Ingresar', onPress: () => router.push('/login') },
+          ]
         );
+      } else if (codigo === 'NO_AUTENTICADO') {
+        // La sesión venció: el AuthContext ya avisó y llevó al ingreso.
+      } else if (codigo === 'TURNO_OCUPADO' || codigo === 'TURNO_NO_DISPONIBLE' || codigo === 'TURNO_PASADO') {
+        // El turno cambió mientras tanto: se vuelve a la grilla (que se recarga sola).
+        Alert.alert('No se pudo reservar', mensajeDe(error, 'Ese turno ya no está disponible.'), [
+          { text: 'Ver otros turnos', onPress: () => router.back() },
+        ]);
       } else {
-        Alert.alert("Error del servidor", error.message);
+        Alert.alert('No se pudo reservar', mensajeDe(error, 'Ocurrió un error. Probá de nuevo.'));
       }
     } finally {
       setProcesando(false);
@@ -114,11 +130,34 @@ export default function ConfirmarReservaScreen() {
             <Ionicons name="location-outline" size={20} color={paleta.muted} />
             <Text style={[estilos.textoFila, { color: paleta.text }]}>{espacio.nombre}</Text>
           </View>
+          <View style={estilos.filaResumen}>
+            <Ionicons name="people-outline" size={20} color={paleta.muted} />
+            <Text style={[estilos.textoFila, { color: paleta.text, flex: 1 }]}>
+              Personas <Text style={{ color: paleta.muted, fontWeight: '400' }}>(máx. {espacio.capacidad})</Text>
+            </Text>
+            <View style={estilos.selectorPersonas}>
+              <TouchableOpacity
+                style={[estilos.botonPersonas, { borderColor: paleta.border, opacity: personas <= 1 ? 0.4 : 1 }]}
+                onPress={() => setPersonas(p => Math.max(1, p - 1))}
+                disabled={personas <= 1}
+              >
+                <Ionicons name="remove" size={20} color={paleta.text} />
+              </TouchableOpacity>
+              <Text style={[estilos.cantidadPersonas, { color: paleta.text }]}>{personas}</Text>
+              <TouchableOpacity
+                style={[estilos.botonPersonas, { borderColor: paleta.border, opacity: personas >= espacio.capacidad ? 0.4 : 1 }]}
+                onPress={() => setPersonas(p => Math.min(espacio.capacidad, p + 1))}
+                disabled={personas >= espacio.capacidad}
+              >
+                <Ionicons name="add" size={20} color={paleta.text} />
+              </TouchableOpacity>
+            </View>
+          </View>
           
           <View style={[estilos.separador, { backgroundColor: paleta.border }]} />
           
           <View style={estilos.filaTotal}>
-            <Text style={[estilos.textoTotal, { color: paleta.text }]}>Total a pagar:</Text>
+            <Text style={[estilos.textoTotal, { color: paleta.text }]}>Precio del turno:</Text>
             <Text style={[estilos.precioTotal, { color: paleta.accent }]}>${espacio.precioPorHora}</Text>
           </View>
         </View>
@@ -167,5 +206,8 @@ const estilos = StyleSheet.create({
   tituloExito: { fontSize: 24, fontWeight: 'bold', marginTop: 15, marginBottom: 10 },
   cajaQR: { padding: 20, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
   textoQR: { marginTop: 10, fontSize: 14, color: '#666', fontWeight: '500' },
-  botonVolver: { paddingVertical: 14, paddingHorizontal: 30, borderRadius: 12, marginTop: 40 }
+  botonVolver: { paddingVertical: 14, paddingHorizontal: 30, borderRadius: 12, marginTop: 40 },
+  selectorPersonas: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  botonPersonas: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  cantidadPersonas: { fontSize: 18, fontWeight: 'bold', minWidth: 24, textAlign: 'center' }
 });

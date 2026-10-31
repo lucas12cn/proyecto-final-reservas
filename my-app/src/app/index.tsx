@@ -10,8 +10,8 @@ export default function LoginScreen() {
   // La sesión vive en AuthContext (claves tokenReserva / usuarioReserva): así el resto de
   // la app y el registro del teléfono para push usan siempre el mismo token.
   const { login, token, cargandoSesion } = useAuth();
-  const [email, setEmail] = useState('emiliano@mail.com');
-  const [password, setPassword] = useState('Villaguay2026');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [cargando, setCargando] = useState(false);
   const biometriaPedida = useRef(false);
 

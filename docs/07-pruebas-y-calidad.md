@@ -83,23 +83,28 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | T-06 | Día bloqueado | Pasado mañana en una cancha descubierta | Todo en "Mantenimiento" |
 | T-07 | Fija | `esp-02`, un martes, 21–22 | Figura "Ocupado" |
 | T-08 | Turno pasado | Hoy, una hora ya transcurrida | "Finalizado" y no se puede tocar |
-| T-09 | Reservar sin cuenta | Tocar un turno libre → Confirmar | Alerta "Falta iniciar sesión" |
+| T-09 | Reservar sin cuenta | Tocar un turno libre → Confirmar | Alerta "Falta iniciar sesión" con botón **Ingresar** |
 | T-10 | Ingreso | `emiliano@mail.com` / `villaguay2026` | Entra a las pestañas |
 | T-11 | Reservar | Elegir turno libre → Confirmar | "¡Reserva confirmada!" y QR |
 | T-12 | Mis reservas | Pestaña Mis Reservas | Aparece la reserva nueva con su QR |
-| T-13 | Doble reserva | Dos teléfonos reservan el mismo turno | Uno confirma; el otro recibe error de turno ocupado |
-| T-14 | Límite de 3 | `lleno@demo.ar` intenta una cuarta | Error "Ya tenés tres reservas activas…" |
+| T-13 | Doble reserva | Dos teléfonos reservan el mismo turno | Uno confirma; el otro ve "Ese turno ya fue reservado." con el botón **Ver otros turnos** |
+| T-14 | Límite de 3 | `lleno@demo.ar` intenta una cuarta | Alerta con el mensaje de la API (no `[object Object]`) |
 | T-15 | Cancelar | Cancelar una reserva con más de 4 h | "La reserva fue cancelada" |
-| T-16 | Cancelar tarde | Reserva con menos de 4 h | Error de cancelación fuera de plazo |
+| T-16 | Cancelar tarde | Reserva con menos de 4 h | No aparece el botón; dice "Ya pasó el plazo para cancelar. Avisale al encargado." |
 | T-17 | Offline | Ver Mis Reservas, activar modo avión, volver a la pestaña | Cartel "Sin conexión" y las reservas con su QR |
 | T-18 | Favoritos | Tocar el corazón en una ficha | Cambia el ícono; persiste al volver a entrar |
 | T-19 | Perfil | Editar nombre/teléfono | Se actualiza y persiste |
 | T-20 | Tema | Perfil → Apariencia → Oscuro | Cambia toda la app |
 | T-21 | Mapa | Menú ☰ → Mapa | Marcadores de los 2 complejos; con permiso, punto azul |
 | T-22 | Mapa sin ubicación | Negar el permiso | El mapa funciona igual |
-| T-23 | Escáner | Ícono QR → huella → cámara | Pide huella/PIN, luego cámara |
+| T-23 | Escáner (personal) | Ingresar como `marcelo@villaguay.demo.ar` → ícono QR → huella → cámara | Pide huella/PIN, luego cámara; un código válido registra el ingreso |
 | T-24 | Cerrar sesión | Perfil → Salir | Vuelve a login; no llegan más avisos de esa cuenta |
 | T-25 | Huella al abrir | Cerrar y abrir la app con sesión | Pide huella/PIN antes de entrar |
+| T-26 | Escáner sólo para personal | Ingresar como jugador | No se ve el ícono QR en la cabecera |
+| T-27 | Ingreso rechazado | Escanear un código de otro día / otra cancha / ya usado | "Ingreso rechazado" con el mensaje de la API |
+| T-28 | Cantidad de personas | Confirmar una reserva bajando el selector | El ingreso (T-27) y la reserva muestran esa cantidad |
+| T-29 | Fecha por la noche | Entre las 21:00 y 24:00, abrir la grilla | "Hoy" muestra los turnos de hoy y los 7 días cargan |
+| T-30 | Sesión vencida | Borrar o alterar el token (o esperar 30 días) y recargar Mis Reservas | Aviso "Sesión vencida" y vuelve al ingreso |
 
 ### 4.3 Casos de notificaciones
 

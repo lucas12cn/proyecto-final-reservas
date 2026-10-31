@@ -37,7 +37,7 @@ flowchart TB
 | `/(tabs)/espacios` | `app/(tabs)/espacios.tsx` | Pestaña 2 | Tras login/registro; "Volver al catálogo" |
 | `/(tabs)/perfil` | `app/(tabs)/perfil.tsx` | Pestaña 3 | Barra inferior |
 | `/mapa` | `app/(tabs)/mapa.tsx` | Pestaña **oculta** (`href: null`) | Menú ☰ de la cabecera |
-| `/escaner` | `app/(tabs)/escaner.tsx` | Pestaña **oculta** | Ícono QR de la cabecera |
+| `/escaner` | `app/(tabs)/escaner.tsx` | Pestaña **oculta** | Ícono QR de la cabecera (sólo se muestra a encargados y administradores) |
 | `/estado-cancha` | `app/(tabs)/estado-cancha.tsx` | Pestaña **oculta** | **Ningún enlace** (pantalla huérfana) |
 | `/espacio/[id]` | `app/espacio/[id].tsx` | Stack | Tarjeta del catálogo; toque de un aviso "Se liberó un turno" |
 | `/espacio/disponibilidad` | `app/espacio/disponibilidad.tsx` | Stack | Botón "Ver disponibilidad" de la ficha |
@@ -90,11 +90,13 @@ Funcionamiento:
 2. `login`/`registro` llaman a `servicios/auth.ts`, guardan token y usuario en estado **y** en
    `SecureStore`, y disparan `registrarParaPush()` sin esperar (no demora el ingreso).
 3. `logout` ejecuta **en este orden**: `darDeBajaPush()` (necesita el token vigente) → limpia
-   el estado → borra las dos claves → `router.replace('/login')`.
+   el estado y borra las dos claves (`limpiarSesion`) → `router.replace('/login')`.
 4. `useAuth()` lanza un error si se usa fuera del `AuthProvider`.
-
-> **Sesión sólo en el cliente:** no se valida el token al arrancar. Si el token venció (30
-> días), el usuario sigue "logueado" en la app hasta que un pedido devuelva `NO_AUTENTICADO`.
+5. **Sesión vencida:** el provider se anota en `servicios/errores.ts`
+   (`registrarAlSesionVencida`). Cuando cualquier pedido recibe `NO_AUTENTICADO` de la API
+   (el token dura 30 días), se ejecuta `sesionVencida()`: limpia la sesión, muestra "Tu sesión
+   venció" y va a `/login`. Un `useRef` (`cerrandoSesion`) evita que se dispare dos veces a la
+   vez (varios pedidos fallando juntos) o mientras corre un `logout`.
 
 ### 2.2 `providers/ThemeProvider.tsx` + `hooks/use-theme.ts`
 
@@ -114,50 +116,48 @@ Funcionamiento:
 
 | Función | Pedido | Notas |
 |---|---|---|
-| `BASE_URL` | — | Dirección de la API escrita a mano (`http://192.168.1.6:3000`). Se exporta y la usa `notificaciones.ts` |
-| `iniciarSesionApi(email, contrasena)` | `POST /auth/ingreso` | Devuelve `datos` (`{ token, usuario }`). Cualquier fallo → `Error('Credenciales inválidas')` |
-| `registrarUsuarioApi(nombre, email, telefono, contrasena)` | `POST /auth/registro` | Fallo → mensaje genérico ("El email podría estar en uso") |
-| `actualizarPerfilApi({ nombre?, telefono? })` | `PATCH /yo` | Exige token; devuelve el `Usuario` actualizado |
-| `registrarDispositivoApi(tokenExpo, plataforma)` | `POST /dispositivos` | Sin sesión no hace nada; lanza error si la API responde mal |
+| `BASE_URL` | — | Es `API_URL` de `config.ts` (reexportada: la usa `notificaciones.ts`) |
+| `iniciarSesionApi(email, contrasena)` | `POST /auth/ingreso` | Devuelve `datos` (`{ token, usuario }`). Si falla, lanza un `ErrorDeApi` con el mensaje de la API ("El email o la contraseña no son correctos.") |
+| `registrarUsuarioApi(nombre, email, telefono, contrasena)` | `POST /auth/registro` | Si falla, lanza con el mensaje de la API (p. ej. `EMAIL_YA_REGISTRADO`) |
+| `actualizarPerfilApi({ nombre?, telefono? })` | `PATCH /yo` | Exige token (`SIN_SESION` si no hay); devuelve el `Usuario` actualizado |
+| `registrarDispositivoApi(tokenExpo, plataforma)` | `POST /dispositivos` | Sin sesión no hace nada; si la API responde mal, lanza `ErrorDeApi` |
 | `darDeBajaDispositivoApi(tokenExpo)` | `DELETE /dispositivos/:token` | `encodeURIComponent` porque el token lleva corchetes |
 
-Todas empiezan con `verificarConexion()` (abajo) salvo las de dispositivos.
+Todas las funciones de este archivo reportan errores con `lanzarSiError` (ver §3.5). Salvo las de dispositivos, empiezan con `verificarConexion()` (abajo).
 
 ### 3.2 `servicios/reservas.ts`
 
-`API_URL` es otra constante con la misma IP (duplicada respecto de `BASE_URL`).
-`verificarConexion()` usa `Network.getNetworkStateAsync()` y lanza
-`'Sin conexión a internet o red local.'` si `isConnected` es falso.
+La URL base es `API_URL` (de `config.ts`). `verificarConexion()` usa
+`Network.getNetworkStateAsync()` y lanza `'Sin conexión a internet o red local.'` si
+`isConnected` es falso. `tokenObligatorio()` lee `tokenReserva` de `SecureStore` y, si no hay,
+lanza `errorSinSesion()` (código `SIN_SESION`).
 
 | Función | Pedido | Comportamiento ante error |
 |---|---|---|
-| `obtenerEspacios()` | `GET /espacios` | Devuelve `[]` (traga el error) |
+| `obtenerEspacios()` | `GET /espacios` | Devuelve `[]` (traga el error y lo loguea) |
 | `obtenerEspacioPorId(id)` | `GET /espacios/:id` | Devuelve `null` |
-| `obtenerTurnosPorDia(espacioId, fecha)` | `GET /espacios/:id/turnos?fecha=` | Devuelve `[]` (sin uso) |
-| `obtenerReservasFijas(espacioId)` | `GET /fijas?espacioId=` | Devuelve `[]` (es endpoint de personal; sin uso) |
-| `crearReserva(turnoId, cantidadPersonas)` | `POST /reservas` + Bearer | Lanza error; `'NO_AUTENTICADO'` si no hay token |
-| `cancelarReserva(reservaId)` | `POST /reservas/:id/cancelacion` | Lanza con `error.mensaje` de la API |
-| `obtenerMisReservas(cuando)` | `GET /yo/reservas?cuando=proximas\|pasadas` | Lanza error |
-| `obtenerMisFavoritos()` | `GET /yo` (campo `espaciosFavoritos`) + `GET /espacios` | Cruza ids con el catálogo; ver abajo |
-| `alternarFavoritoApi(espacioId, marcar)` | `PUT` / `DELETE /yo/espacios-favoritos/:id` | Lanza error |
-| `obtenerTurnosEspacio(espacioId, fecha?)` | `GET /espacios/:id/turnos?fecha=` | Lanza error. **Es la que usa la grilla** |
-| `obtenerDeportes()` | `GET /deportes` | Devuelve `[]` |
-| `registrarIngresoApi(codigoQr, espacioId)` | — | **SIMULADA**: espera 500 ms y devuelve datos falsos |
-| `obtenerComplejosApi()` | — | **SIMULADA** (sin uso) |
-| `obtenerMisReservasApi()` | — | **SIMULADA** (sin uso) |
+| `obtenerDeportes()` | `GET /deportes` | Devuelve `[]` si la respuesta no es OK |
+| `obtenerTurnosEspacio(espacioId, fecha?)` | `GET /espacios/:id/turnos?fecha=` | Lanza `ErrorDeApi` (la usa la grilla) |
+| `crearReserva(turnoId, cantidadPersonas)` | `POST /reservas` + Bearer | Lanza `ErrorDeApi` con el mensaje de la API; `SIN_SESION` si no hay token |
+| `cancelarReserva(reservaId)` | `POST /reservas/:id/cancelacion` | Lanza `ErrorDeApi` |
+| `obtenerMisReservas(cuando)` | `GET /yo/reservas?cuando=proximas\|pasadas` | Lanza `ErrorDeApi` |
+| `obtenerMisFavoritos()` | `GET /yo` (campo `espaciosFavoritos`) + `GET /espacios` | Sin sesión o con error devuelve `[]` |
+| `alternarFavoritoApi(espacioId, marcar)` | `PUT` / `DELETE /yo/espacios-favoritos/:id` | Lanza `ErrorDeApi` |
+| `registrarIngresoApi(codigoQr, espacioId)` | `POST /ingresos` + Bearer | Lanza `ErrorDeApi` con el mensaje de la API; devuelve la `Reserva` ya `cumplida` |
 
 Detalles de implementación que conviene saber explicar:
 
 - **Desempaquetado:** la API envuelve todo en `{ datos }`; cada función devuelve `json.datos`.
-- **`obtenerMisFavoritos`:** pide `/yo` y toma `espaciosFavoritos` (ids). Si ya vinieran
-  objetos con `nombre`, los usa; si no, normaliza a ids de texto y filtra el catálogo
-  (`obtenerEspacios()`). Hay una ruta alternativa `/yo/espacios-favoritos` que la API real no
-  expone para `GET` (es código defensivo).
-- **Duplicación:** `obtenerTurnosPorDia` y `obtenerTurnosEspacio` hacen lo mismo; la grilla usa
-  la segunda.
-- **Manejo de errores inconsistente:** `crearReserva` lee `errorData.message || errorData.error`,
-  pero la API responde `{ error: { codigo, mensaje } }`: ver el error **[B-01]** en
-  [08](08-estado-actual-y-deuda-tecnica.md).
+- **`obtenerMisFavoritos`:** pide `/yo`, toma `espaciosFavoritos` (ids) y los cruza con el
+  catálogo (`obtenerEspacios()`) para devolver las tarjetas completas.
+- **Funciones simuladas:** ya no quedan. `registrarIngresoApi` era una simulación y ahora llama
+  a la API; se eliminaron `obtenerComplejosApi`, `obtenerMisReservasApi` (datos falsos sin uso)
+  y `obtenerTurnosPorDia` / `obtenerReservasFijas` (duplicada la primera; la segunda es un
+  endpoint de personal).
+- **Qué se traga y qué se lanza:** las funciones del catálogo (`obtenerEspacios`,
+  `obtenerEspacioPorId`, `obtenerMisFavoritos`) devuelven un valor vacío ante cualquier fallo
+  para no romper la pantalla; las acciones del usuario (reservar, cancelar, favoritos, ingreso)
+  lanzan el error para que la pantalla muestre el mensaje.
 
 ### 3.3 `servicios/notificaciones.ts`
 
@@ -173,13 +173,40 @@ Define `iniciarBaseDeDatos`, `guardarEspaciosEnTelefono`/`leerEspaciosDelTelefon
 importa**: cada pantalla abre su propia base. Es el "diseño previsto" por el PRD (servicio de
 persistencia) que quedó sin conectar.
 
+### 3.5 `servicios/errores.ts`
+
+Un único lugar donde se interpretan los errores de la API. Toda respuesta de error tiene la
+forma `{ error: { codigo, mensaje } }`: el `codigo` es estable (se compara) y el `mensaje` está
+listo para mostrarse.
+
+| Elemento | Qué hace |
+|---|---|
+| `ErrorDeApi` | `Error` con `codigo` (de la API, o `SIN_SESION` si nace en la app) y `estado` HTTP |
+| `lanzarSiError(respuesta, porDefecto)` | Si la respuesta no es OK, lanza un `ErrorDeApi` con el `mensaje` de la API (o `porDefecto` si no se puede leer) |
+| `errorDesdeRespuesta` | Lo mismo pero devolviendo el error (lo usa `lanzarSiError`); si el código es `NO_AUTENTICADO` avisa a `registrarAlSesionVencida` |
+| `errorSinSesion()` | `ErrorDeApi` con código `SIN_SESION` para cuando falta el token local |
+| `codigoDe(error)` / `mensajeDe(error, porDefecto)` | Las pantallas los usan en el `catch` para decidir qué hacer y qué texto mostrar |
+| `registrarAlSesionVencida(fn)` | El `AuthContext` se anota para cerrar la sesión cuando vence el token |
+
+Diferencia entre los dos códigos de "sin sesión": `SIN_SESION` es del cliente (no hay token
+guardado: se ofrece ir a ingresar); `NO_AUTENTICADO` es de la API (el token existe pero no sirve:
+la sesión se cierra sola y se vuelve al ingreso).
+
+### 3.6 `servicios/config.ts`
+
+Exporta `API_URL`: `process.env.EXPO_PUBLIC_API_URL` (sin barra final) o, si no está definida,
+`http://192.168.1.6:3000`. Todos los servicios la usan. Expo incorpora las variables
+`EXPO_PUBLIC_*` al iniciar, por eso hay que reiniciar con `npx expo start -c` al cambiarla. El
+archivo `my-app/.env.example` muestra el formato; cada integrante crea su `.env.local`
+(ignorado por git).
+
 ## 4. Pantallas, una por una
 
 ### 4.1 Entrada — `app/index.tsx` (`LoginScreen`)
 
 Pantalla "Bienvenido". Usa `AuthContext` como el resto de la app.
 
-- **Estado:** `email`, `password` (precargados con credenciales de demo), `cargando`, y un
+- **Estado:** `email`, `password` (arrancan vacíos), `cargando`, y un
   `useRef` `biometriaPedida` que evita pedir la huella dos veces.
 - **Con sesión guardada:** un `useEffect` espera `cargandoSesion === false`; si hay `token` y no
   se pidió la huella, llama a `verificarSesion()`. Esta consulta
@@ -238,7 +265,9 @@ Puntos para tener claros:
 ### 4.5 Disponibilidad — `espacio/disponibilidad.tsx`
 
 - **`generarProximosDias()`:** arma 7 objetos `{ iso, nombre, numero }` (el primero es "Hoy").
-  El `iso` sale de `fecha.toISOString().split('T')[0]` → **fecha en UTC**: ver **[B-02]**.
+  El `iso` sale de `aFechaLocal()`, que arma `AAAA-MM-DD` con la fecha **local** del teléfono
+  (`getFullYear/getMonth/getDate`). No se usa `toISOString()` porque devuelve la fecha en UTC y
+  en Argentina (UTC−3), entre las 21:00 y las 24:00, UTC ya es el día siguiente.
 - **Estado:** `fechaSeleccionada` (por defecto hoy), `turnosReales` (`any[]`), `cargando`.
 - **Carga:** `useFocusEffect` con una bandera `estaActivo` para ignorar respuestas tardías
   si la pantalla perdió el foco o cambió el día (evita condiciones de carrera). Llama a
@@ -256,16 +285,20 @@ Puntos para tener claros:
 ### 4.6 Confirmación — `espacio/confirmar.tsx`
 
 - Recibe `id, fecha, hora, turnoId` por parámetros de ruta; carga el espacio.
+- **Cantidad de personas:** un selector (− / +) de 1 a `espacio.capacidad`; arranca en la
+  capacidad (`setPersonas(data.capacidad)` al cargar el espacio) y se puede bajar.
 - **`confirmarReservaApi()`:** `procesando = true` (deshabilita el botón),
-  `crearReserva(turnoId, espacio?.capacidad || 10)`, guarda `reservaGenerada.codigoQr` en
-  `qrData` y `confirmado = true`. Errores: `'NO_AUTENTICADO'` → "Falta iniciar sesión"; otros →
-  "Error del servidor" con el mensaje.
+  `crearReserva(turnoId, personas)`, guarda `reservaGenerada.codigoQr` en `qrData` y
+  `confirmado = true`. Errores, según `codigoDe(error)`:
+  - `SIN_SESION` → "Falta iniciar sesión" con el botón **Ingresar** (lleva a `/login`);
+  - `NO_AUTENTICADO` → no muestra nada (el `AuthContext` ya avisó "Sesión vencida");
+  - `TURNO_OCUPADO` / `TURNO_NO_DISPONIBLE` / `TURNO_PASADO` → alerta con el mensaje de la API
+    y el botón **Ver otros turnos** (`router.back()`; la grilla se recarga sola al ganar el foco);
+  - cualquier otro → alerta "No se pudo reservar" con el mensaje de la API.
 - **Vista de éxito:** ícono de check, texto "Te esperamos el {fecha} a las {hora}…" y el QR
   dibujado con `react-native-qrcode-svg` (`<QRCode value={qrData} size={150} />`). Botón
   "Volver al catálogo" (`router.navigate('/(tabs)/espacios')`).
-- **Limitación:** la cantidad de personas **no se pregunta**: siempre se reserva por la
-  capacidad total del espacio. Pendiente respecto del PRD ("indicando… cuántos van a ser").
-- Muestra "Total a pagar: $X" y aclara que el pago es en el complejo (la app no cobra).
+- Muestra "Precio del turno: $X" y aclara que el pago es en el complejo (la app no cobra).
 
 ### 4.7 Mis Reservas — `(tabs)/index.tsx`
 
@@ -290,23 +323,28 @@ Pantalla clave del requisito offline.
    id, se rompe). `horaFin` = hora + 1.
 7. **Cómo llegar:** `Linking.openURL` a una búsqueda de Google Maps del complejo + ", Villaguay".
 8. **Cancelar:** `Alert` de confirmación → `cancelarReserva(id)` → recarga. El botón sólo se
-   ve en "próximas" y **con conexión**. El texto "hasta las 15:00 de hoy" es **fijo** (no
-   calculado desde `cancelableHasta`): **[B-06]**.
+   ve en "próximas" y **con conexión**. `plazoDeCancelacion(cancelableHasta)` calcula el aviso
+   desde el dato que entrega la API: "Se puede cancelar sin aviso hasta las 15:00 de hoy" (o
+   "del 19/09" si es otro día). Si el plazo ya pasó, **oculta el botón** y muestra "Ya pasó el
+   plazo para cancelar. Avisale al encargado.".
 
 ### 4.8 Escáner — `(tabs)/escaner.tsx`
 
-1. **`inicializarEscaner()`:** si hay huella/PIN, exige `authenticateAsync`; luego carga los
+1. **Control de rol:** `esPersonal = usuario?.rol === 'encargado' || 'administrador'`. Si no lo
+   es, la pantalla muestra "El control de ingresos es sólo para el personal del complejo" y no
+   inicia nada (el ícono QR de la cabecera tampoco se muestra). La API igualmente rechaza el
+   pedido con `SIN_PERMISO`.
+2. **`inicializarEscaner()`:** si hay huella/PIN, exige `authenticateAsync`; luego carga los
    espacios para que el encargado elija **qué cancha controla**.
-2. **Permiso de cámara** con `useCameraPermissions()`; si no está concedido, muestra una
+3. **Permiso de cámara** con `useCameraPermissions()`; si no está concedido, muestra una
    pantalla explicativa con "Otorgar permiso".
-3. **`CameraView`** a pantalla completa, sólo `qr` (`barcodeTypes: ["qr"]`).
+4. **`CameraView`** a pantalla completa, sólo `qr` (`barcodeTypes: ["qr"]`).
    `onBarcodeScanned` se desactiva mientras `escaneando` es `true` (evita lecturas repetidas).
-4. **`manejarEscaneo({ data })`:** llama a `registrarIngresoApi(data, espacioSeleccionado)`;
-   éxito → `Haptics.notificationAsync(Success)` + "¡Ingreso autorizado!"; error →
-   `Haptics.notificationAsync(Error)` + "Ingreso rechazado".
-5. **⚠️ `registrarIngresoApi` es una simulación** (siempre "éxito"): la API real
-   (`POST /ingresos`) **no se llama**. Además, **no se verifica el rol**: cualquier usuario
-   (incluso invitado) llega al escáner por el ícono QR. **[B-03]**.
+5. **`manejarEscaneo({ data })`:** llama a `registrarIngresoApi(data, espacioSeleccionado)`, que
+   hace `POST /ingresos`. Éxito → `Haptics.notificationAsync(Success)` + "¡Ingreso autorizado!"
+   con la cantidad de personas de la reserva. Error → `Haptics.notificationAsync(Error)` +
+   "Ingreso rechazado" con **el mensaje de la API** ("Esa reserva no es para hoy.", "Esa
+   reserva es para otra cancha.", "Esa reserva ya ingresó.", etc.).
 
 ### 4.9 Mapa — `(tabs)/mapa.tsx`
 
@@ -341,7 +379,8 @@ Pantalla clave del requisito offline.
 - `Tabs` con tres pestañas visibles (Mis Reservas, Canchas, Perfil) y tres ocultas
   (`href: null`): `escaner`, `estado-cancha`, `mapa`.
 - Cabecera común: título "Deportes Villaguay", ícono ☰ a la izquierda (abre un `Modal` con la
-  opción "Mapa de Complejos") e ícono QR a la derecha (→ `/escaner`).
+  opción "Mapa de Complejos") e ícono QR a la derecha (→ `/escaner`), que **sólo aparece si el
+  usuario es encargado o administrador** (`headerRight` es `undefined` para el resto).
 - Los colores de barra y cabecera salen de `paleta`.
 
 ### 4.12 `(tabs)/estado-cancha.tsx`

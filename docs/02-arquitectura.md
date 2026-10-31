@@ -158,8 +158,10 @@ my-app/src/
 ├── providers/ThemeProvider.tsx  Estado global del tema
 ├── hooks/use-theme.ts        `useTema()` (acceso a la paleta)
 ├── servicios/                Única capa que habla con la red
+│   ├── config.ts             API_URL (variable EXPO_PUBLIC_API_URL)
+│   ├── errores.ts            ErrorDeApi, lanzarSiError, sesión vencida
 │   ├── auth.ts               /auth/*, /yo, /dispositivos
-│   ├── reservas.ts           /espacios, /deportes, /reservas, favoritos
+│   ├── reservas.ts           /espacios, /deportes, /reservas, /ingresos, favoritos
 │   ├── notificaciones.ts     Permiso, token de Expo, alta/baja
 │   └── db.ts                 SQLite/kv (helpers sin uso actual)
 ├── tipos/index.ts            Tipos del PRD (copia literal)
@@ -318,10 +320,10 @@ El diseño completo está en [05](05-notificaciones-push.md).
 | Enumeración de usuarios | Se verifica contra un hash de relleno si el email no existe (iguala tiempos) | `users.service.ts` |
 | Validación de entrada | `whitelist` + `forbidNonWhitelisted`: un campo de más es error | `setup-app.ts` |
 | Token en el teléfono | `expo-secure-store` (nunca `kv-store`, como exige el PRD) | `AuthContext.tsx` |
-| Acceso al escáner | Huella/PIN si el teléfono la tiene (no hay control de **rol**) | `escaner.tsx` |
+| Acceso al escáner | Sólo encargado/administrador (pantalla e ícono) + huella/PIN si el teléfono la tiene; la API valida el rol | `escaner.tsx`, `(tabs)/_layout.tsx` |
 | Producción | Con `ENTORNO=publicado` la API no arranca con SQLite, archivos en disco, `JWT_SECRETO` débil o simulación activa | `config/environment.ts` |
 | Transporte | La app usa `http://` en desarrollo; producción debería ser `https://` | — |
-| Secretos en el repo | La pantalla `app/index.tsx` trae credenciales de demo precargadas | ver [08](08-estado-actual-y-deuda-tecnica.md) |
+| Sesión vencida | Si la API responde `NO_AUTENTICADO`, la app cierra la sesión y vuelve al ingreso | `servicios/errores.ts`, `AuthContext.tsx` |
 
 ## 7. Entornos y despliegue
 

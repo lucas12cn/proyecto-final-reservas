@@ -3,10 +3,14 @@ import { View, Text, TouchableOpacity, Modal, StyleSheet, Pressable } from 'reac
 import { useState } from 'react';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTema } from '../../hooks/use-theme';
+import { useAuth } from '../../contexto/AuthContext';
 
 export default function TabsLayout() {
   const [menuVisible, setMenuVisible] = useState(false);
   const { paleta } = useTema(); 
+  const { usuario } = useAuth();
+  // El escáner de ingresos es del personal: el ícono QR sólo se muestra a encargados y administradores.
+  const esPersonal = usuario?.rol === 'encargado' || usuario?.rol === 'administrador';
 
   const irA = (ruta: any) => {
     setMenuVisible(false);
@@ -25,11 +29,13 @@ export default function TabsLayout() {
           headerTintColor: paleta.text,
           headerTitle: 'Deportes Villaguay',
           
-          headerRight: () => (
-            <TouchableOpacity onPress={() => router.push('/escaner')} style={{ marginRight: 15 }}>
-              <Ionicons name="qr-code-outline" size={24} color={paleta.text} />
-            </TouchableOpacity>
-          ),
+          headerRight: esPersonal
+            ? () => (
+                <TouchableOpacity onPress={() => router.push('/escaner')} style={{ marginRight: 15 }}>
+                  <Ionicons name="qr-code-outline" size={24} color={paleta.text} />
+                </TouchableOpacity>
+              )
+            : undefined,
           
           headerLeft: () => (
             <TouchableOpacity onPress={() => setMenuVisible(true)} style={{ marginLeft: 15 }}>

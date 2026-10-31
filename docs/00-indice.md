@@ -6,7 +6,10 @@ está hecho y dónde mirar en el código.
 
 > **Estado documentado:** repositorio `proyecto-final-reservas` (commit `3c59b52`) más la
 > integración de notificaciones push (módulo de dispositivos en la API y servicio de
-> notificaciones en la app). Todo lo que se afirma sobre el código fue verificado leyéndolo; lo
+> notificaciones en la app) y la primera tanda de correcciones (manejo de errores de la API,
+> fecha local en la grilla, escáner real con control de rol, cantidad de personas, plazo de
+> cancelación real, URL de la API por variable de entorno). Lo pendiente está en
+> [08](08-estado-actual-y-deuda-tecnica.md). Todo lo que se afirma sobre el código fue verificado leyéndolo; lo
 > que no se pudo verificar (por ejemplo, comportamiento en un teléfono real) se marca como tal.
 
 ## 1. Cómo leer esta documentación

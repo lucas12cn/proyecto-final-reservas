@@ -22,7 +22,9 @@ Todos se verificaron leyendo el código; los que dependen de un teléfono real s
 
 ## 2. Errores conocidos
 
-### B-01 · Los mensajes de error de la API se muestran como `[object Object]` — **alta**
+### B-01 · Los mensajes de error de la API se muestran como `[object Object]` — **alta** ✅ RESUELTO
+
+> **Resuelto:** `servicios/errores.ts` (`ErrorDeApi`, `lanzarSiError`) y todos los servicios lo usan; las pantallas muestran el `mensaje` de la API. Al fallar el turno, `confirmar.tsx` ofrece volver a la grilla.
 
 - **Dónde:** `servicios/reservas.ts` → `crearReserva`, `alternarFavoritoApi`.
 - **Causa:** la API responde `{ error: { codigo, mensaje } }`, pero el código hace
@@ -49,7 +51,9 @@ export const codigoDeError = async (respuesta: Response) =>
 if (!respuesta.ok) throw new Error(await mensajeDeError(respuesta, 'Error al crear la reserva'));
 ```
 
-### B-02 · La grilla calcula "hoy" en UTC: de noche, los días se corren — **alta**
+### B-02 · La grilla calcula "hoy" en UTC: de noche, los días se corren — **alta** ✅ RESUELTO
+
+> **Resuelto:** `aFechaLocal()` en `disponibilidad.tsx` arma la fecha con los componentes locales.
 
 - **Dónde:** `app/espacio/disponibilidad.tsx` → `generarProximosDias()`.
 - **Causa:** `fecha.toISOString().split('T')[0]` devuelve la fecha **en UTC**. Argentina es
@@ -66,7 +70,9 @@ const aIso = (f: Date) =>
 dias.push({ iso: aIso(fecha), nombre: …, numero: fecha.getDate() });
 ```
 
-### B-03 · El escáner no registra el ingreso (simulado) y no controla el rol — **alta**
+### B-03 · El escáner no registra el ingreso (simulado) y no controla el rol — **alta** ✅ RESUELTO
+
+> **Resuelto:** `registrarIngresoApi` llama a `POST /ingresos`; el escáner y el ícono QR sólo están disponibles para encargado/administrador y muestran el mensaje de la API.
 
 - **Dónde:** `servicios/reservas.ts#registrarIngresoApi` (devuelve datos falsos tras 500 ms);
   `(tabs)/escaner.tsx` (accesible para cualquiera por el ícono QR).
@@ -98,14 +104,18 @@ setVideoCache(destino.uri);
 ```
   (Verificar la firma exacta en la documentación del SDK 57.)
 
-### B-05 · Credenciales de demo precargadas, con la contraseña mal escrita — **media**
+### B-05 · Credenciales de demo precargadas, con la contraseña mal escrita — **media** ✅ RESUELTO
+
+> **Resuelto:** los campos de `app/index.tsx` arrancan vacíos.
 
 - **Dónde:** `app/index.tsx`: `useState('emiliano@mail.com')` y `useState('Villaguay2026')`.
 - **Efecto:** la contraseña real es `villaguay2026` (minúscula): el primer ingreso **falla**. Y
   son credenciales escritas en un repositorio público.
 - **Arreglo (S):** dejar ambos campos vacíos (usar `__DEV__` si se quiere conservar el atajo).
 
-### B-06 · Texto fijo "hasta las 15:00 de hoy" en cada reserva — **media**
+### B-06 · Texto fijo "hasta las 15:00 de hoy" en cada reserva — **media** ✅ RESUELTO
+
+> **Resuelto:** `plazoDeCancelacion()` usa `cancelableHasta`; si ya venció, oculta el botón y avisa.
 
 - **Dónde:** `(tabs)/index.tsx` (aviso bajo "Cancelar reserva").
 - **Causa:** es un texto literal copiado del wireframe del PRD; la API ya entrega
@@ -113,7 +123,9 @@ setVideoCache(destino.uri);
 - **Arreglo (S):** formatear `item.cancelableHasta` (hora local) y, si ya pasó, deshabilitar el
   botón y mostrar "Avisale al encargado".
 
-### B-07 · Siempre se reserva por la capacidad total — **media**
+### B-07 · Siempre se reserva por la capacidad total — **media** ✅ RESUELTO
+
+> **Resuelto:** selector de personas (1 a la capacidad) en `confirmar.tsx`.
 
 - **Dónde:** `espacio/confirmar.tsx` → `crearReserva(turnoId, espacio?.capacidad || 10)`.
 - **Efecto:** no se pregunta "cuántos van a ser" (PRD §3). Una cancha de fútbol 5 queda
@@ -131,7 +143,9 @@ setVideoCache(destino.uri);
 - `ThemeProvider` mantiene `modoManual` sólo en memoria. **Arreglo (S):** guardarlo con
   `expo-sqlite/kv-store` (para lo que el PRD prevé) y leerlo al montar.
 
-### B-10 · La sesión nunca se valida: un token vencido no se detecta — **media**
+### B-10 · La sesión nunca se valida: un token vencido no se detecta — **media** ✅ RESUELTO
+
+> **Resuelto:** cuando la API responde `NO_AUTENTICADO`, el `AuthContext` cierra la sesión, avisa y vuelve al ingreso (`sesionVencida`).
 
 - El token dura 30 días. La app lo carga al arrancar y asume que sirve; cuando venza, los
   pedidos devolverán `NO_AUTENTICADO` y las pantallas mostrarán listas vacías sin explicar.
@@ -160,11 +174,11 @@ setVideoCache(destino.uri);
 
 | ID | Requisito (PRD) | Estado | Esfuerzo |
 |---|---|---|---|
-| G-01 | Registro real del ingreso con QR (§4) | Simulado (B-03) | M |
+| G-01 | Registro real del ingreso con QR (§4) | ✅ Resuelto (llama a `POST /ingresos`) | — |
 | G-02 | Marcar "no se presentó" (§4) | Sin pantalla; la API lo tiene (`POST /reservas/:id/ausente`) | M |
 | G-03 | **Recordatorio 2 h antes** (§5) | No implementado | M |
 | G-04 | Pantallas del personal (§6): bloqueos, fijas, agenda, precio | No hay | L |
-| G-05 | Distinguir roles en la interfaz (D6) | La app trata a todos como jugadores | M |
+| G-05 | Distinguir roles en la interfaz (D6) | ⚠️ Parcial: el escáner es sólo para personal; faltan las demás pantallas del personal (G-04) | M |
 | G-06 | Guardar fotos/video para verlos sin datos (§capacidades) | No funciona (B-04) | M |
 | G-07 | `expo-sensors` y `kv-store` | Instalados, sin uso real | S |
 | G-08 | `react-native-maps` (PRD) | Se usó Leaflet en WebView (decisión consciente) | — |
@@ -196,9 +210,9 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 
 | ID | Tema | Detalle | Esfuerzo |
 |---|---|---|---|
-| D-01 | **IP de la API escrita a mano dos veces** | `BASE_URL` (`auth.ts`) y `API_URL` (`reservas.ts`). Unificar en un `config.ts` leyendo `process.env.EXPO_PUBLIC_API_URL` | S |
-| D-02 | Tres servicios simulados sin uso | `obtenerComplejosApi`, `obtenerMisReservasApi` (y `registrarIngresoApi`, que sí se usa) | S |
-| D-03 | Funciones duplicadas | `obtenerTurnosPorDia` ≡ `obtenerTurnosEspacio`; filtros en cliente aunque la API filtra | S |
+| D-01 | ✅ **IP de la API** | Resuelto: `servicios/config.ts` lee `EXPO_PUBLIC_API_URL` (`.env.local`) | — |
+| D-02 | ✅ Servicios simulados | Resuelto: se eliminaron `obtenerComplejosApi` y `obtenerMisReservasApi`; `registrarIngresoApi` es real | — |
+| D-03 | ⚠️ Funciones duplicadas | Parcial: se eliminó `obtenerTurnosPorDia`; los filtros del catálogo siguen en el cliente | S |
 | D-04 | Capas saltadas | Pantallas abren SQLite y `expo-file-system` directamente; `servicios/db.ts` sin uso | M |
 | D-05 | Mucho `any` | `useState<any[]>`, `catch (error: any)`, `ThemeContext = createContext<any>`; usar los tipos del PRD | M |
 | D-06 | Dos bases SQLite y dos paletas | `mis_reservas_final.db`, `canchas_galeria.db`, `villaguay_deportes.db` (sin uso); `theme/colors.ts` sin uso | S |
@@ -211,22 +225,24 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | D-13 | Sin tests de la app | Ver [07](07-pruebas-y-calidad.md) | L |
 | D-14 | Lockfile de la API desincronizado | `pnpm install` y commitear `pnpm-lock.yaml` (el CI usa `--frozen-lockfile`) | S |
 | D-15 | `http://` en claro | Aceptable en desarrollo; para producción usar `https://` (Render) | — |
-| D-16 | `Total a pagar` en la confirmación | El PRD aclara que no se cobra en la app; cambiar a "Precio" | S |
+| D-16 | ✅ `Total a pagar` | Resuelto: ahora dice "Precio del turno" | — |
 | D-17 | Estilos en línea con mucha repetición | Extraer componentes (`Boton`, `Tarjeta`, `Chip`) | M |
 
 ## 5. Plan de cierre recomendado (orden sugerido)
 
+**Avance:** las prioridades **1 a 6 y la 9 están hechas** (marcadas ✅ en la tabla de abajo). Siguen la 7 (recordatorio de 2 h), la 8 (caché de espacios y archivos) y las siguientes.
+
 | Prioridad | Tarea | Resuelve |
 |---|---|---|
-| 1 | Helper de errores + usarlo en todos los servicios | B-01, B-10 |
-| 2 | Fecha local en la grilla | B-02 |
-| 3 | `POST /ingresos` real + control de rol del escáner | B-03, G-01, G-05 |
-| 4 | Selector de cantidad de personas | B-07 |
-| 5 | Texto de cancelación desde `cancelableHasta` | B-06 |
-| 6 | Quitar credenciales precargadas | B-05 |
+| 1 ✅ | Helper de errores + usarlo en todos los servicios | B-01, B-10 |
+| 2 ✅ | Fecha local en la grilla | B-02 |
+| 3 ✅ | `POST /ingresos` real + control de rol del escáner | B-03, G-01, G-05 |
+| 4 ✅ | Selector de cantidad de personas | B-07 |
+| 5 ✅ | Texto de cancelación desde `cancelableHasta` | B-06 |
+| 6 ✅ | Quitar credenciales precargadas | B-05 |
 | 7 | Recordatorio local de 2 h | G-03 |
 | 8 | Caché de espacios en SQLite + API nueva de archivos | B-11, B-04, G-06 |
-| 9 | `config.ts` único para la URL de la API | D-01 |
+| 9 ✅ | `config.ts` único para la URL de la API | D-01 |
 | 10 | `eas.json`, nombre y `package` definitivos, build de producción | G-09 |
 | 11 | Limpieza (código muerto, dependencias, `tsc` limpio) | D-02…D-12 |
 | 12 | Pantalla de ausentes y, si da el tiempo, pantallas de personal | G-02, G-04 |

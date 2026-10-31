@@ -1,8 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import { iniciarSesionApi, registrarUsuarioApi } from '../servicios/auth';
 import { registrarParaPush, darDeBajaPush } from '../servicios/notificaciones';
+import { registrarAlSesionVencida } from '../servicios/errores';
 import { Usuario } from '../tipos';
 
 type AuthContextType = {
@@ -62,19 +64,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     registrarParaPush(); // sin await: no demora el ingreso y nunca tira
   };
 
+  // Evita que el cierre de sesión y el aviso de "sesión vencida" corran al mismo tiempo.
+  const cerrandoSesion = useRef(false);
+
+  const limpiarSesion = async () => {
+    setToken(null);
+    setUsuario(null);
+    await SecureStore.deleteItemAsync('tokenReserva');
+    await SecureStore.deleteItemAsync('usuarioReserva');
+  };
+
   const logout = async () => {
+    cerrandoSesion.current = true;
     try {
       // Antes de borrar la sesión: la baja del teléfono necesita el token de acceso.
       await darDeBajaPush();
-      setToken(null);
-      setUsuario(null);
-      await SecureStore.deleteItemAsync('tokenReserva');
-      await SecureStore.deleteItemAsync('usuarioReserva');
+      await limpiarSesion();
       router.replace('/login');
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
+    } finally {
+      cerrandoSesion.current = false;
     }
   };
+
+  // La API respondió NO_AUTENTICADO con un token guardado: venció (dura 30 días) o ya no es
+  // válido. Se cierra la sesión y se manda al ingreso, en vez de dejar pantallas vacías.
+  const sesionVencida = async () => {
+    if (cerrandoSesion.current) return;
+    cerrandoSesion.current = true;
+    try {
+      if (!(await SecureStore.getItemAsync('tokenReserva'))) return; // ya estaba cerrada
+      await limpiarSesion();
+      Alert.alert('Sesión vencida', 'Tu sesión venció. Ingresá de nuevo para continuar.');
+      router.replace('/login');
+    } finally {
+      cerrandoSesion.current = false;
+    }
+  };
+
+  useEffect(() => registrarAlSesionVencida(sesionVencida), []);
 
   return (
     <AuthContext.Provider value={{ usuario, token, cargandoSesion, login, registro, logout }}>

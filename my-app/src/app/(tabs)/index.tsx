@@ -126,6 +126,24 @@ export default function MisReservasScreen() {
     );
   };
 
+  const dosDigitos = (n: number) => String(n).padStart(2, '0');
+
+  // Plazo para cancelar sin aviso, calculado desde `cancelableHasta` (lo entrega la API).
+  const plazoDeCancelacion = (cancelableHasta?: string) => {
+    const limite = cancelableHasta ? new Date(cancelableHasta) : null;
+    if (!limite || Number.isNaN(limite.getTime())) return { vencido: false, texto: '' };
+
+    const ahora = new Date();
+    if (limite.getTime() <= ahora.getTime()) {
+      return { vencido: true, texto: 'Ya pasó el plazo para cancelar.\nAvisale al encargado.' };
+    }
+    const hora = `${dosDigitos(limite.getHours())}:${dosDigitos(limite.getMinutes())}`;
+    const dia = limite.toDateString() === ahora.toDateString()
+      ? 'de hoy'
+      : `del ${dosDigitos(limite.getDate())}/${dosDigitos(limite.getMonth() + 1)}`;
+    return { vencido: false, texto: `Se puede cancelar sin aviso\nhasta las ${hora} ${dia}` };
+  };
+
   const formatearTurno = (turnoId: string) => {
     if (!turnoId) return { fecha: '', hora: '' };
     const partes = turnoId.split('-');
@@ -230,19 +248,24 @@ export default function MisReservasScreen() {
                     <Text style={estilos.textoBotonWireframe}>[ Como llegar ]</Text>
                   </TouchableOpacity>
 
-                  {estado !== 'CANCELADA' && filtro === 'proximas' && !modoOffline && (
-                    <View style={estilos.contenedorCancelarWireframe}>
-                      <TouchableOpacity 
-                        style={estilos.botonWireframe}
-                        onPress={() => manejarCancelacion(item.id)}
-                      >
-                        <Text style={estilos.textoBotonWireframe}>[ Cancelar reserva ]</Text>
-                      </TouchableOpacity>
-                      <Text style={estilos.avisoCancelacion}>
-                        Se puede cancelar sin aviso{'\n'}hasta las 15:00 de hoy
-                      </Text>
-                    </View>
-                  )}
+                  {estado !== 'CANCELADA' && filtro === 'proximas' && !modoOffline && (() => {
+                    const plazo = plazoDeCancelacion(item.cancelableHasta);
+                    return (
+                      <View style={estilos.contenedorCancelarWireframe}>
+                        {!plazo.vencido && (
+                          <TouchableOpacity
+                            style={estilos.botonWireframe}
+                            onPress={() => manejarCancelacion(item.id)}
+                          >
+                            <Text style={estilos.textoBotonWireframe}>[ Cancelar reserva ]</Text>
+                          </TouchableOpacity>
+                        )}
+                        {!!plazo.texto && (
+                          <Text style={estilos.avisoCancelacion}>{plazo.texto}</Text>
+                        )}
+                      </View>
+                    );
+                  })()}
                 </View>
               </View>
             );

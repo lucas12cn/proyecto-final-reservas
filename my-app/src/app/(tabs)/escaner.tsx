@@ -7,10 +7,15 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { registrarIngresoApi, obtenerEspacios } from '../../servicios/reservas';
+import { mensajeDe } from '../../servicios/errores';
+import { useAuth } from '../../contexto/AuthContext';
 import { useTema } from '../../hooks/use-theme';
 
 export default function EscanerScreen() {
   const { paleta } = useTema();
+  const { usuario } = useAuth();
+  // Sólo el personal (encargado o administrador) puede validar ingresos; la API también lo exige.
+  const esPersonal = usuario?.rol === 'encargado' || usuario?.rol === 'administrador';
   const [permiso, pedirPermiso] = useCameraPermissions();
   const [escaneando, setEscaneando] = useState(false);
   const [autenticado, setAutenticado] = useState(false);
@@ -21,8 +26,8 @@ export default function EscanerScreen() {
   const [cargandoEspacios, setCargandoEspacios] = useState(true);
 
   useEffect(() => {
-    inicializarEscaner();
-  }, []);
+    if (esPersonal) inicializarEscaner();
+  }, [esPersonal]);
 
   const inicializarEscaner = async () => {
     // 1. Validamos la identidad
@@ -58,6 +63,20 @@ export default function EscanerScreen() {
       setCargandoEspacios(false);
     }
   };
+
+  if (!esPersonal) {
+    return (
+      <View style={[estilos.centrado, { backgroundColor: paleta.background, padding: 24 }]}>
+        <Ionicons name="lock-closed-outline" size={60} color={paleta.muted} style={{ marginBottom: 20 }} />
+        <Text style={{ color: paleta.text, textAlign: 'center', fontSize: 16, marginBottom: 20 }}>
+          El control de ingresos es sólo para el personal del complejo.
+        </Text>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={{ color: paleta.accent, fontWeight: 'bold' }}>Volver</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (!autenticado || cargandoEspacios) {
     return (
@@ -96,20 +115,20 @@ export default function EscanerScreen() {
     setEscaneando(true);
 
     try {
-      await registrarIngresoApi(data, espacioSeleccionado);
+      const reserva = await registrarIngresoApi(data, espacioSeleccionado);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
       Alert.alert(
         "¡Ingreso Autorizado!", 
-        `El código fue validado correctamente para esta cancha.`, 
+        `Reserva para ${reserva.cantidadPersonas} ${reserva.cantidadPersonas === 1 ? 'persona' : 'personas'}. El ingreso quedó registrado.`, 
         [{ text: "Escanear otro", onPress: () => setEscaneando(false) }]
       );
-    } catch (error: any) {
+    } catch (error) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       
       Alert.alert(
         "Ingreso Rechazado", 
-        error.message || "Este código no es válido o no corresponde a esta cancha.", 
+        mensajeDe(error, "Este código no es válido o no corresponde a esta cancha."), 
         [{ text: "Reintentar", onPress: () => setEscaneando(false) }]
       );
     }
