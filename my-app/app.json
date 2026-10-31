@@ -37,6 +37,7 @@
       "expo-image",
       "expo-web-browser",
       "expo-sqlite",
+      "expo-notifications",
       "expo-secure-store",
       "expo-video",
       "@react-native-vector-icons/ionicons"

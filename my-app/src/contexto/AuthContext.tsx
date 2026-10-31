@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
-import { Platform } from 'react-native';
-import { iniciarSesionApi, registrarUsuarioApi, registrarDispositivoApi } from '../servicios/auth';
+import { iniciarSesionApi, registrarUsuarioApi } from '../servicios/auth';
+import { registrarParaPush, darDeBajaPush } from '../servicios/notificaciones';
 import { Usuario } from '../tipos';
 
 type AuthContextType = {
@@ -25,16 +25,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     cargarSesionGuardada();
   }, []);
 
-  const configurarNotificacionesPush = async () => {
-    try {
-      // Simulación directa para cumplir con el requisito del backend en la entrega
-      console.log("Enviando token simulado a NestJS...");
-      await registrarDispositivoApi("ExponentPushToken[Simulado_UNER_ExpoGo]", Platform.OS);
-    } catch (error) {
-      console.log("Error al enviar dispositivo a la API:", error);
-    }
-  };
-
   const cargarSesionGuardada = async () => {
     try {
       const tokenGuardado = await SecureStore.getItemAsync('tokenReserva');
@@ -43,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (tokenGuardado && usuarioGuardado) {
         setToken(tokenGuardado);
         setUsuario(JSON.parse(usuarioGuardado));
-        configurarNotificacionesPush();
+        registrarParaPush(); // sin await: no demora el ingreso y nunca tira
       }
     } catch (e) {
       console.log('Error cargando sesión:', e);
@@ -59,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await SecureStore.setItemAsync('tokenReserva', datos.token);
     await SecureStore.setItemAsync('usuarioReserva', JSON.stringify(datos.usuario));
     
-    configurarNotificacionesPush();
+    registrarParaPush(); // sin await: no demora el ingreso y nunca tira
   };
 
   const registro = async (nombre: string, email: string, telefono: string, contrasena: string) => {
@@ -69,11 +59,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await SecureStore.setItemAsync('tokenReserva', datos.token);
     await SecureStore.setItemAsync('usuarioReserva', JSON.stringify(datos.usuario));
     
-    configurarNotificacionesPush();
+    registrarParaPush(); // sin await: no demora el ingreso y nunca tira
   };
 
   const logout = async () => {
     try {
+      // Antes de borrar la sesión: la baja del teléfono necesita el token de acceso.
+      await darDeBajaPush();
       setToken(null);
       setUsuario(null);
       await SecureStore.deleteItemAsync('tokenReserva');

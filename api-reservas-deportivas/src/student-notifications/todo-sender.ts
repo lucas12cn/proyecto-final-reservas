@@ -1,71 +1,88 @@
-// PARTE 2 DE 2 PARA PROGRAMAR — cómo se mandan las push a Expo.
-// Leé docs/NOTIFICATIONS.md. Cuando funcione, `pnpm test:notificaciones` tiene que pasar.
-import { ErrorApi } from '../common/errors/error-api.js';
-import { EnviadorPush, type MensajePush } from '../common/notifications/ports.js';
+import { Logger } from '@nestjs/common';
+import {
+  EnviadorPush,
+  type MensajePush,
+} from '../common/notifications/ports.js';
+
+/** Mensaje tal como lo pide la API de Expo (campos en inglés). */
+interface MensajeExpo {
+  to: string;
+  title: string;
+  body: string;
+  data: Record<string, string>;
+}
+
+interface TicketExpo {
+  status: 'ok' | 'error';
+  details?: { error?: string };
+}
+
+const MAXIMO_POR_PEDIDO = 100;
+const ESPERA_MAXIMA_MS = 10_000;
 
 export class EnviadorPorHacer extends EnviadorPush {
+  private readonly logger = new Logger('EnviadorExpo');
+
   /** `url` es la dirección de la API de push de Expo (`EXPO_PUSH_URL` en la configuración). */
   constructor(readonly url: string) {
     super();
   }
 
-  async enviar(mensajes: MensajePush[]): Promise<{ tokensInvalidos: string[] }> {
-    let tokensInvalidos: string[] = [];
-    let mensajesExpo: any[] = [];
+  async enviar(
+    mensajes: MensajePush[],
+  ): Promise<{ tokensInvalidos: string[] }> {
+    // Un mensaje de Expo por token.
+    const mensajesExpo: MensajeExpo[] = mensajes.flatMap((m) =>
+      m.tokens.map((token) => ({
+        to: token,
+        title: m.titulo,
+        body: m.cuerpo,
+        data: m.datos,
+      })),
+    );
 
-    // 1. Traducimos del español de la cátedra al inglés que pide la API de Expo
-    // y creamos un mensaje individual por cada token del arreglo
-    for (let i = 0; i < mensajes.length; i++) {
-      let mensaje = mensajes[i];
-      
-      for (let k = 0; k < mensaje.tokens.length; k++) {
-        let token = mensaje.tokens[k];
-        
-        mensajesExpo.push({
-          to: token,
-          title: mensaje.titulo,
-          body: mensaje.cuerpo,
-          data: mensaje.datos
-        });
-      }
-    }
-
-    // 2. Mandamos a Expo en tandas de 100 como máximo
-    for (let i = 0; i < mensajesExpo.length; i += 100) {
-      // Cortamos la tanda actual
-      let tanda = mensajesExpo.slice(i, i + 100);
-
+    const tokensInvalidos: string[] = [];
+    for (let i = 0; i < mensajesExpo.length; i += MAXIMO_POR_PEDIDO) {
+      const tanda = mensajesExpo.slice(i, i + MAXIMO_POR_PEDIDO);
+      // Si una tanda falla se loguea y se sigue con las demás: así no se pierden los
+      // tokens inválidos ya detectados (Avisos igual atraparía una excepción).
       try {
-        let respuesta = await fetch(this.url, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Accept-encoding': 'gzip, deflate',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(tanda),
-        });
-
-        let resultado = await respuesta.json();
-        let tickets = resultado.data;
-        
-        if (tickets) {
-          // Revisamos cada ticket devuelto
-          for (let j = 0; j < tickets.length; j++) {
-            let ticket = tickets[j];
-            
-            // Si el ticket falló por DeviceNotRegistered, capturamos el token de esa misma posición
-            if (ticket.status === 'error' && ticket.details && ticket.details.error === 'DeviceNotRegistered') {
-              let tokenRoto = tanda[j].to;
-              tokensInvalidos.push(tokenRoto);
-            }
-          }
-        }
+        tokensInvalidos.push(...(await this.enviarTanda(tanda)));
       } catch (error) {
-        console.log("Hubo un problema de conexión al mandar la tanda a Expo:", error);
+        this.logger.error(
+          `No se pudo mandar una tanda de ${tanda.length} mensajes a Expo: ${(error as Error).message}`,
+        );
       }
     }
+    return { tokensInvalidos };
+  }
 
-    return { tokensInvalidos: tokensInvalidos };
+  /** Manda una tanda y devuelve los tokens que Expo dice que ya no existen. */
+  private async enviarTanda(tanda: MensajeExpo[]): Promise<string[]> {
+    const respuesta = await fetch(this.url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(tanda),
+      signal: AbortSignal.timeout(ESPERA_MAXIMA_MS),
+    });
+    if (!respuesta.ok)
+      throw new Error(`Expo respondió HTTP ${respuesta.status}`);
+
+    const cuerpo = (await respuesta.json()) as { data?: TicketExpo[] };
+    // Los tickets vienen en el mismo orden que los mensajes mandados.
+    const tickets = Array.isArray(cuerpo.data) ? cuerpo.data : [];
+    const invalidos: string[] = [];
+    tickets.forEach((ticket, j) => {
+      if (
+        ticket.status === 'error' &&
+        ticket.details?.error === 'DeviceNotRegistered' &&
+        tanda[j]
+      )
+        invalidos.push(tanda[j].to);
+    });
+    return invalidos;
   }
 }

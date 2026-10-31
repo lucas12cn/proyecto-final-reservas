@@ -1,43 +1,44 @@
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
-import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '../contexto/AuthContext';
 
 export default function LoginScreen() {
+  // La sesión vive en AuthContext (claves tokenReserva / usuarioReserva): así el resto de
+  // la app y el registro del teléfono para push usan siempre el mismo token.
+  const { login, token, cargandoSesion } = useAuth();
   const [email, setEmail] = useState('emiliano@mail.com');
   const [password, setPassword] = useState('Villaguay2026');
   const [cargando, setCargando] = useState(false);
+  const biometriaPedida = useRef(false);
 
   useEffect(() => {
+    // Con una sesión guardada se pide huella/PIN una sola vez antes de entrar.
+    if (cargandoSesion || !token || biometriaPedida.current) return;
+    biometriaPedida.current = true;
     verificarSesion();
-  }, []);
+  }, [cargandoSesion, token]);
 
   const verificarSesion = async () => {
-    const token = await SecureStore.getItemAsync('sesion_token');
-    console.log("Token detectado al abrir Login:", token);
-    
-    if (token && token !== '') {
-      const tieneHardware = await LocalAuthentication.hasHardwareAsync();
-      const tieneBiometria = await LocalAuthentication.isEnrolledAsync();
+    const tieneHardware = await LocalAuthentication.hasHardwareAsync();
+    const tieneBiometria = await LocalAuthentication.isEnrolledAsync();
 
-      if (tieneHardware && tieneBiometria) {
-        const resultado = await LocalAuthentication.authenticateAsync({
-          promptMessage: 'Ingresá a tus reservas',
-          fallbackLabel: 'Usar PIN del teléfono',
-        });
+    if (tieneHardware && tieneBiometria) {
+      const resultado = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Ingresá a tus reservas',
+        fallbackLabel: 'Usar PIN del teléfono',
+      });
 
-        if (resultado.success) {
-          router.replace('/(tabs)' as any);
-        } else {
-          Alert.alert("Acceso denegado", "No pudimos validar tu identidad.");
-        }
-      } else {
+      if (resultado.success) {
         router.replace('/(tabs)' as any);
+      } else {
+        Alert.alert("Acceso denegado", "No pudimos validar tu identidad.");
       }
+    } else {
+      router.replace('/(tabs)' as any);
     }
   };
 
@@ -51,31 +52,12 @@ export default function LoginScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
     setCargando(true);
+    biometriaPedida.current = true; // recién ingresó con la contraseña: no pedir huella otra vez
     try {
-      const respuesta = await axios.post('http://192.168.1.6:3000/auth/ingreso', {
-        email,
-        contrasena: password
-      });
-
-      console.log("Respuesta del backend:", respuesta.data);
-
-      const token = respuesta.data.datos?.token || respuesta.data.token;
-      console.log("Token a guardar:", token);
-
-      if (token) {
-        await SecureStore.setItemAsync('sesion_token', token);
-        console.log("¡Token guardado exitosamente en la bóveda!");
-      } else {
-        console.log("¡Cuidado! El token llegó vacío o indefinido.");
-      }
-      
-      setTimeout(() => {
-        router.replace('/(tabs)' as any);
-      }, 300);
-
-    } catch (error) {
-      console.log("Error en login:", error);
-      Alert.alert('Error', 'Credenciales incorrectas o problema de red.');
+      await login(email, password); // guarda la sesión y registra el teléfono para push
+      router.replace('/(tabs)' as any);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Credenciales incorrectas o problema de red.');
     } finally {
       setCargando(false);
     }

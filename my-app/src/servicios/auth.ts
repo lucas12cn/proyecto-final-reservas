@@ -2,7 +2,7 @@ import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';
 
 // Separamos la IP base para poder usarla en /auth y en /yo
-const BASE_URL = 'http://192.168.1.6:3000';
+export const BASE_URL = 'http://192.168.1.6:3000';
 const API_URL = `${BASE_URL}/auth`;
 
 const verificarConexion = async () => {
@@ -62,9 +62,9 @@ export const actualizarPerfilApi = async (datos: { nombre?: string; telefono?: s
 
 export const registrarDispositivoApi = async (tokenExpo: string, plataforma: string) => {
   const token = await SecureStore.getItemAsync('tokenReserva');
-  if (!token) return; // Si no hay sesión, no hacemos nada
-  
-  await fetch(`${BASE_URL}/dispositivos`, {
+  if (!token) return; // Sin sesión no hay a quién anotarle el teléfono
+
+  const respuesta = await fetch(`${BASE_URL}/dispositivos`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -72,4 +72,17 @@ export const registrarDispositivoApi = async (tokenExpo: string, plataforma: str
     },
     body: JSON.stringify({ tokenExpo, plataforma })
   });
+  if (!respuesta.ok) throw new Error(`No se pudo registrar el dispositivo (HTTP ${respuesta.status})`);
+};
+
+// La API responde 204 aunque el token no estuviera anotado.
+export const darDeBajaDispositivoApi = async (tokenExpo: string) => {
+  const token = await SecureStore.getItemAsync('tokenReserva');
+  if (!token) return;
+
+  const respuesta = await fetch(`${BASE_URL}/dispositivos/${encodeURIComponent(tokenExpo)}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!respuesta.ok) throw new Error(`No se pudo dar de baja el dispositivo (HTTP ${respuesta.status})`);
 };
