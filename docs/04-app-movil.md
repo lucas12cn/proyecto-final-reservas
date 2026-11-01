@@ -24,7 +24,15 @@ flowchart TB
 - **`ThemeProvider`** y **`AuthProvider`** son los dos contextos globales. Todo lo demás es
   estado local de cada pantalla (`useState`).
 - `app.json` activa `typedRoutes` (las rutas se chequean al compilar) y `reactCompiler`.
-- `scheme: "myapp"` define el esquema de enlaces profundos.
+- `scheme: "reservasvillaguay"` define el esquema de enlaces profundos.
+- **Identidad y permisos** (`app.json`): `name` "Deportes Villaguay", `slug`
+  `reservas-deportivas-villaguay`, `android.package` e `ios.bundleIdentifier`
+  `com.villaguay.reservasdeportivas`. Los plugins `expo-camera`, `expo-location`,
+  `expo-image-picker` y `expo-local-authentication` fijan los textos de permiso de iOS en
+  castellano (`NSCameraUsageDescription`, `NSLocationWhenInUseUsageDescription`,
+  `NSPhotoLibraryUsageDescription`, `NSFaceIDUsageDescription`); sin ellos un build de iOS no
+  los incluye y la app se cierra al pedir el permiso (en Expo Go no se nota). Se piden sólo los
+  permisos necesarios: sin micrófono (`RECORD_AUDIO` bloqueado) ni ubicación en segundo plano.
 
 ### 1.1 Navegación
 

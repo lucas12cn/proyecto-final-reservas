@@ -187,6 +187,19 @@ app la programa en el teléfono con `scheduleNotificationAsync` (disparador por 
 2 h, identificador `recordatorio-<reservaId>`). No necesita servidor ni señal. Se cancela al
 cancelar la reserva o cerrar sesión y se reconcilia cada vez que se cargan "Mis reservas".
 
+### Entrega
+
+**¿Cómo generan la app para instalarla?** Con EAS Build: `eas build --platform android --profile
+preview` produce un APK instalable y `production` un AAB para Google Play. `eas.json` define los
+perfiles y la URL de la API de cada uno ([README §5](../README.md)).
+
+**¿Por qué la API del build tiene que ser https?** Android e iOS bloquean el tráfico `http://` sin
+cifrar en las apps de producción; sólo Expo Go y el development client lo permiten.
+
+**¿Por qué configuran permisos en `app.json` si Expo Go anda sin eso?** Expo Go ya trae los
+textos de permisos; un build propio no. Sin los plugins, en iOS falta el texto de cámara,
+ubicación o fotos y el sistema cierra la app al pedirlo.
+
 ### Calidad y seguridad
 
 **¿Cómo probaron?** La API trae ~300 tests unitarios, ~1.160 e2e y 25 de notificaciones; el CI

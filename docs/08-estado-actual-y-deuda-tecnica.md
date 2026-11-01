@@ -186,7 +186,7 @@ setVideoCache(destino.uri);
 | G-06 | Guardar fotos/video para verlos sin datos (§capacidades) | ✅ Resuelto (B-04) | — |
 | G-07 | `expo-sensors` y `kv-store` | Instalados, sin uso real | S |
 | G-08 | `react-native-maps` (PRD) | Se usó Leaflet en WebView (decisión consciente) | — |
-| G-09 | Build de producción con EAS (Entrega) | No hay `eas.json`; `name: "my-app"`, `package: com.anonymous.myapp` | M |
+| G-09 | Build de producción con EAS (Entrega) | ⚠️ Configuración lista (`eas.json`, nombre, identificador, permisos). Falta lo que requiere cuentas: `eas init`, URL `https://` de la API en `eas.json`, credenciales de push y generar el build | S |
 | G-10 | Mostrar el precio por turno y el motivo del bloqueo en la grilla | La API los envía; la app no los muestra | S |
 
 ### Cómo implementar el recordatorio de 2 horas (G-03)
@@ -230,11 +230,12 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | D-14 | Lockfile de la API desincronizado | `pnpm install` y commitear `pnpm-lock.yaml` (el CI usa `--frozen-lockfile`) | S |
 | D-15 | `http://` en claro | Aceptable en desarrollo; para producción usar `https://` (Render) | — |
 | D-16 | ✅ `Total a pagar` | Resuelto: ahora dice "Precio del turno" | — |
+| D-18 | Íconos y pantalla de inicio de la plantilla | `assets/images/icon.png`, `android-icon-*.png`, `splash-icon.png`, `favicon.png` son los de Expo; sin ícono de notificación propio (Android usa el del launcher) | S |
 | D-17 | Estilos en línea con mucha repetición | Extraer componentes (`Boton`, `Tarjeta`, `Chip`) | M |
 
 ## 5. Plan de cierre recomendado (orden sugerido)
 
-**Avance:** las prioridades **1 a 9 están hechas** (marcadas ✅ en la tabla de abajo). Siguen la 10 (`eas.json` y datos definitivos), la 11 (limpieza) y la 12 (ausentes y pantallas del personal).
+**Avance:** las prioridades **1 a 10 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). Siguen la 11 (limpieza) y la 12 (ausentes y pantallas del personal).
 
 | Prioridad | Tarea | Resuelve |
 |---|---|---|
@@ -247,7 +248,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | 7 ✅ | Recordatorio local de 2 h | G-03 |
 | 8 ✅ | Caché de espacios en SQLite + API nueva de archivos | B-11, B-04, G-06 |
 | 9 ✅ | `config.ts` único para la URL de la API | D-01 |
-| 10 | `eas.json`, nombre y `package` definitivos, build de producción | G-09 |
+| 10 ✅ | `eas.json`, nombre e identificador definitivos, permisos para iOS (el build en sí necesita las cuentas: ver README §5) | G-09 |
 | 11 | Limpieza (código muerto, dependencias, `tsc` limpio) | D-02…D-12 |
 | 12 | Pantalla de ausentes y, si da el tiempo, pantallas de personal | G-02, G-04 |
 

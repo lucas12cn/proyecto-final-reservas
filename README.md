@@ -18,7 +18,7 @@ proyecto-final-reservas/
 │                              completó la parte de notificaciones push.
 ├── my-app/                    App móvil (React Native + Expo + Expo Router). Es el
 │                              trabajo del grupo.
-└── docs/                      Documentación técnica para desarrolladores (ver §7).
+└── docs/                      Documentación técnica para desarrolladores (ver §8).
 ```
 
 | Parte | Tecnología principal | Carpeta |
@@ -140,7 +140,71 @@ Para que lleguen las notificaciones del servidor:
 > o el build de producción. En iPhone funcionan con Expo Go. Detalle en
 > [`docs/05-notificaciones-push.md`](docs/05-notificaciones-push.md).
 
-## 5. Comandos útiles
+## 5. Generar la app con EAS (builds)
+
+La configuración ya está en `my-app/app.json` y `my-app/eas.json`.
+
+| Perfil | Qué genera | Para qué | URL de la API |
+|---|---|---|---|
+| `development` | APK con *development client* | Probar con Metro y **recibir push en Android** | La de tu `.env.local` (la sirve Metro) |
+| `preview` | APK instalable | Probar una versión "real" en teléfonos del grupo | `env` de `eas.json` |
+| `production` | AAB (Android) / IPA (iOS) | Entrega y tiendas | `env` de `eas.json` |
+
+### 5.1 Una sola vez
+
+```bash
+cd my-app
+npm install                    # trae expo-dev-client (agregado a package.json)
+npm install -g eas-cli         # o usar: npx eas-cli <comando>
+eas login                      # cuenta de expo.dev (gratis)
+eas init                       # crea el proyecto y agrega extra.eas.projectId a app.json (commitear)
+```
+
+Después, en `my-app/eas.json`, reemplazá `https://REEMPLAZAR-POR-LA-URL-DE-LA-API` por la URL
+pública de la API (por ejemplo la de Render) en los perfiles `preview` y `production`.
+
+> **Tiene que ser `https://`.** Los builds de producción de Android e iOS bloquean el tráfico
+> `http://` sin cifrar. Un build apuntando a `http://192.168.x.x:3000` no va a poder hablar con
+> la API (esto sólo funciona en Expo Go y en el development client).
+
+### 5.2 Generar los builds
+
+```bash
+eas build --platform android --profile development   # luego: npx expo start --dev-client
+eas build --platform android --profile preview       # APK: EAS entrega un enlace/QR de descarga
+eas build --platform android --profile production    # AAB para Google Play
+eas build --platform ios --profile production        # requiere cuenta de Apple Developer (paga)
+```
+
+### 5.3 Notificaciones push en un build
+
+Además del `NOTIFICACIONES=expo` de la API, cada plataforma necesita credenciales:
+
+| Plataforma | Qué hace falta |
+|---|---|
+| Android | (1) Crear un proyecto en Firebase con una app Android cuyo nombre de paquete sea **`com.villaguay.reservasdeportivas`**; (2) descargar `google-services.json`, ponerlo en `my-app/` y agregar `"googleServicesFile": "./google-services.json"` dentro de `android` en `app.json`; (3) subir a EAS la *clave de cuenta de servicio FCM V1* con `eas credentials` (Android → Google Service Account) |
+| iOS | Subir una *APNs key* a EAS (necesita cuenta de Apple Developer) |
+
+La clave de cuenta de servicio es secreta: **no se commitea**.
+
+### 5.4 Identidad de la app
+
+| Dato | Valor | Dónde |
+|---|---|---|
+| Nombre visible | Deportes Villaguay | `app.json` → `name` |
+| Identificador Android / iOS | `com.villaguay.reservasdeportivas` | `android.package`, `ios.bundleIdentifier` |
+| Esquema de enlaces | `reservasvillaguay` | `scheme` |
+
+> **El identificador no se puede cambiar una vez publicada la app en Google Play.** Si prefieren
+> otro (por ejemplo con el dominio de la facultad), cámbienlo en `app.json` **antes** del primer
+> build de producción.
+
+Los permisos (cámara, ubicación, galería, Face ID) tienen mensajes en castellano y se piden sólo
+los necesarios (sin micrófono ni ubicación en segundo plano). Los íconos y la pantalla de inicio
+siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
+`android-icon-*.png`, `splash-icon.png` y `favicon.png` por los del proyecto.
+
+## 6. Comandos útiles
 
 ### API (`api-reservas-deportivas/`)
 
@@ -159,10 +223,11 @@ Para que lleguen las notificaciones del servidor:
 |---|---|
 | `npx expo start` | Servidor de desarrollo (QR para Expo Go) |
 | `npm run android` / `npm run ios` | Build nativo local (requiere Android Studio / Xcode) |
+| `npx expo config --type introspect` | Muestra permisos y `Info.plist`/manifiesto resultantes (sirve para revisar `app.json`) |
 | `npm run lint` | Lint de Expo |
 | `npx tsc --noEmit` | Chequeo de tipos |
 
-## 6. Problemas frecuentes
+## 7. Problemas frecuentes
 
 | Síntoma | Causa probable y solución |
 |---|---|
@@ -173,9 +238,10 @@ Para que lleguen las notificaciones del servidor:
 | `Could not locate the bindings file` (better-sqlite3) | Repetir `pnpm install` con Node 24, o usar Docker |
 | No llegan las push | `NOTIFICACIONES=expo`, teléfono real, permiso concedido y, en Android, development build |
 | El mapa queda en blanco | Necesita internet: carga Leaflet desde `unpkg.com` y los mosaicos de OpenStreetMap |
+| El build de `preview`/`production` no se conecta a la API | La URL de `eas.json` debe ser `https://` y apuntar a la API publicada |
 | `pnpm install --frozen-lockfile` falla | `pnpm-lock.yaml` desincronizado: correr `pnpm install` y commitear el lockfile |
 
-## 7. Documentación para desarrolladores
+## 8. Documentación para desarrolladores
 
 Pensada para que cualquier integrante pueda explicar el proyecto completo (planificación,
 diseño, implementación y código):
@@ -196,7 +262,7 @@ diseño, implementación y código):
 La API trae además su propia documentación en `api-reservas-deportivas/` (`README.md`,
 `AGENTS.md`, `docs/SPECIFICATION.md`, `docs/DECISIONS.md`, `docs/NOTIFICATIONS.md`).
 
-## 8. Licencia y autoría
+## 9. Licencia y autoría
 
 Trabajo académico. La API y el PRD fueron provistos por la cátedra; la aplicación móvil y la
 integración de notificaciones push son del grupo.

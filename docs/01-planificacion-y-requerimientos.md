@@ -56,7 +56,7 @@ elementos. **La app muestra el precio, no cobra.**
 | Plataforma | Android y iPhone (mayoría Android) |
 | Framework | React Native con Expo, TypeScript, Expo Router |
 | Estilos | `StyleSheet` (Unistyles/NativeWind opcionales) |
-| Entrega | Build de producción con EAS |
+| Entrega | Build de producción con EAS (configuración lista en `eas.json`; ver [README §5](../README.md)) |
 | Datos | Al principio, datos inventados (`mocks`) detrás de una capa de servicios; luego la API de la cátedra |
 | Sesión | Token en `expo-secure-store`, nunca en `kv-store` |
 | Conectividad | La reserva y su QR deben verse **sin conexión** (la señal en la cancha es mala) |

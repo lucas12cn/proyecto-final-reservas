@@ -338,8 +338,12 @@ El diseño completo está en [05](05-notificaciones-push.md).
 | Docker | SQLite o PostgreSQL / MySQL / MariaDB | disco o S3Proxy | `docker compose up` (+ `-f compose.<motor>.yaml`) |
 | Publicado | PostgreSQL (Supabase, esquema `api`) | S3 (Supabase Storage) | Render (`render.yaml`) |
 
-La app se entrega con **build de producción de EAS** (PRD). En este repo **todavía no hay
-`eas.json`** ni identificador de aplicación definitivo (`com.anonymous.myapp`): ver [08](08-estado-actual-y-deuda-tecnica.md).
+La app se entrega con **build de producción de EAS** (PRD). `my-app/eas.json` define tres
+perfiles: `development` (APK con development client), `preview` (APK interno) y `production`
+(AAB / IPA, con `autoIncrement` del número de versión). La URL de la API de los builds se inyecta
+con `env.EXPO_PUBLIC_API_URL` de cada perfil (el `.env.local` no viaja a EAS) y **debe ser
+`https://`**: los builds de producción bloquean `http://`. Pasos y credenciales de push en el
+[README §5](../README.md).
 
 ## 8. Decisiones de diseño y sus razones
 

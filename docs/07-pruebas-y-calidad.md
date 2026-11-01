@@ -121,7 +121,20 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | N-05 | Cambio de dueño | Cerrar sesión y entrar con otra cuenta en el mismo teléfono | Los avisos llegan a la cuenta nueva, no a la anterior |
 | N-06 | Baja | Cerrar sesión | La tabla `dispositivos` ya no tiene el token |
 
-### 4.4 Casos de error de red
+### 4.4 Prueba del build (APK `preview` o `production`)
+
+Con un build real, **no** con Expo Go (cambian los permisos y no se permite `http://`):
+
+| ID | Caso | Resultado esperado |
+|---|---|---|
+| B-01 | Instalar el APK y abrir la app | Nombre "Deportes Villaguay" bajo el ícono; carga el catálogo desde la API publicada (https) |
+| B-02 | Escáner | Pide el permiso de cámara con el texto en castellano |
+| B-03 | Mapa | Pide la ubicación con el texto en castellano; si se niega, el mapa funciona igual |
+| B-04 | Reportar foto | Pide acceso a fotos (sin pedir micrófono ni cámara) |
+| B-05 | Push | Con credenciales FCM cargadas, `POST /dispositivos/prueba` llega al teléfono |
+| B-06 | iPhone (si hay build) | Los permisos y Face ID muestran sus textos; la app no se cierra al pedirlos |
+
+### 4.5 Casos de error de red
 
 Con `SIMULACION_HABILITADA=true`, enviando la cabecera `X-Simular: error-500` o
 `demora-3000` (por ejemplo desde Swagger/Postman o agregándola temporalmente al `fetch`):

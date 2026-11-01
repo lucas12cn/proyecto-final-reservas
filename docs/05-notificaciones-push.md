@@ -301,6 +301,7 @@ Con el valor por defecto, los avisos aparecen en la consola de la API. Sirve par
 | Tema | Detalle |
 |---|---|
 | **Android + Expo Go** | Desde Expo SDK 53, Expo Go en Android **no soporta push remotas**. Hace falta un *development build* o el build de producción. En iPhone sí funciona con Expo Go |
+| Builds (EAS) | Para recibir push en un build hacen falta credenciales: en **Android**, `google-services.json` (`android.googleServicesFile`) y la clave de cuenta de servicio **FCM V1** subida a EAS (`eas credentials`); en **iOS**, una *APNs key* (cuenta de Apple Developer). Pasos en el [README §5.3](../README.md) |
 | Emuladores | Sin Google Play no se obtiene token (`Device.isDevice` es falso) |
 | `projectId` | `getExpoPushTokenAsync` lo necesita; sale de `eas init` (`extra.eas.projectId`). Sin eso puede fallar |
 | Recordatorio 2 h antes | Implementado como notificación **local** (ver §5.4); falta confirmarlo en un teléfono real |
