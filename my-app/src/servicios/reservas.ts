@@ -3,6 +3,10 @@ import * as SecureStore from 'expo-secure-store';
 import { Espacio, Deporte, Reserva, Turno } from '../tipos';
 import { API_URL } from './config';
 import { errorSinSesion, lanzarSiError } from './errores';
+import {
+  guardarEspaciosEnTelefono, leerEspaciosDelTelefono,
+  guardarDeportesEnTelefono, leerDeportesDelTelefono,
+} from './db';
 
 const verificarConexion = async () => {
   const red = await Network.getNetworkStateAsync();
@@ -18,16 +22,28 @@ const tokenObligatorio = async (): Promise<string> => {
   return token;
 };
 
+// El catálogo (espacios y deportes) se guarda en SQLite cada vez que se descarga bien. Sin
+// conexión, o si la API no responde, se devuelve lo último guardado. Guardar y leer el
+// respaldo nunca debe romper una pantalla, por eso van con try/catch.
+const respaldar = (guardar: () => void) => {
+  try { guardar(); } catch (error) { console.log('No se pudo guardar el catálogo local:', error); }
+};
+const recuperar = <T,>(leer: () => T[]): T[] => {
+  try { return leer(); } catch { return []; }
+};
+
 export const obtenerEspacios = async (): Promise<Espacio[]> => {
   try {
     await verificarConexion();
     const respuesta = await fetch(`${API_URL}/espacios`);
     await lanzarSiError(respuesta, 'Error al obtener los espacios');
     const json = await respuesta.json();
-    return json.datos; // La API envuelve la respuesta en "datos"
+    const espacios: Espacio[] = json.datos; // La API envuelve la respuesta en "datos"
+    respaldar(() => guardarEspaciosEnTelefono(espacios));
+    return espacios;
   } catch (error) {
-    console.error('Error en obtenerEspacios:', error);
-    return [];
+    console.error('Error en obtenerEspacios (se usa lo guardado):', error);
+    return recuperar(leerEspaciosDelTelefono);
   }
 };
 
@@ -39,18 +55,24 @@ export const obtenerEspacioPorId = async (id: string): Promise<Espacio | null> =
     const json = await respuesta.json();
     return json.datos;
   } catch (error) {
-    console.error('Error en obtenerEspacioPorId:', error);
-    return null;
+    console.error('Error en obtenerEspacioPorId (se usa lo guardado):', error);
+    return recuperar(leerEspaciosDelTelefono).find((espacio) => espacio.id === id) ?? null;
   }
 };
 
 export const obtenerDeportes = async (): Promise<Deporte[]> => {
-  await verificarConexion();
-  const respuesta = await fetch(`${API_URL}/deportes`);
-  if (!respuesta.ok) return [];
-
-  const json = await respuesta.json();
-  return json.datos || [];
+  try {
+    await verificarConexion();
+    const respuesta = await fetch(`${API_URL}/deportes`);
+    await lanzarSiError(respuesta, 'Error al obtener los deportes');
+    const json = await respuesta.json();
+    const deportes: Deporte[] = json.datos || [];
+    respaldar(() => guardarDeportesEnTelefono(deportes));
+    return deportes;
+  } catch (error) {
+    console.error('Error en obtenerDeportes (se usa lo guardado):', error);
+    return recuperar(leerDeportesDelTelefono);
+  }
 };
 
 /** Los 16 turnos de un espacio en un día (`fecha` = AAAA-MM-DD). Lanza con el mensaje de la API. */

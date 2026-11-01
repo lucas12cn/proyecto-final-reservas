@@ -90,7 +90,8 @@ Funcionamiento:
 2. `login`/`registro` llaman a `servicios/auth.ts`, guardan token y usuario en estado **y** en
    `SecureStore`, y disparan `registrarParaPush()` sin esperar (no demora el ingreso).
 3. `logout` ejecuta **en este orden**: `darDeBajaPush()` (necesita el token vigente) → limpia
-   el estado y borra las dos claves (`limpiarSesion`) → `router.replace('/login')`.
+   la sesión (`limpiarSesion`: estado, recordatorios locales programados y las dos claves de
+   `SecureStore`) → `router.replace('/login')`.
 4. `useAuth()` lanza un error si se usa fuera del `AuthProvider`.
 5. **Sesión vencida:** el provider se anota en `servicios/errores.ts`
    (`registrarAlSesionVencida`). Cuando cualquier pedido recibe `NO_AUTENTICADO` de la API
@@ -134,9 +135,9 @@ lanza `errorSinSesion()` (código `SIN_SESION`).
 
 | Función | Pedido | Comportamiento ante error |
 |---|---|---|
-| `obtenerEspacios()` | `GET /espacios` | Devuelve `[]` (traga el error y lo loguea) |
-| `obtenerEspacioPorId(id)` | `GET /espacios/:id` | Devuelve `null` |
-| `obtenerDeportes()` | `GET /deportes` | Devuelve `[]` si la respuesta no es OK |
+| `obtenerEspacios()` | `GET /espacios` | Guarda el resultado en SQLite; ante cualquier fallo devuelve lo último guardado (o `[]`) |
+| `obtenerEspacioPorId(id)` | `GET /espacios/:id` | Ante un fallo busca el espacio en lo guardado; si no está, `null` |
+| `obtenerDeportes()` | `GET /deportes` | Igual que los espacios: respaldo local ante cualquier fallo |
 | `obtenerTurnosEspacio(espacioId, fecha?)` | `GET /espacios/:id/turnos?fecha=` | Lanza `ErrorDeApi` (la usa la grilla) |
 | `crearReserva(turnoId, cantidadPersonas)` | `POST /reservas` + Bearer | Lanza `ErrorDeApi` con el mensaje de la API; `SIN_SESION` si no hay token |
 | `cancelarReserva(reservaId)` | `POST /reservas/:id/cancelacion` | Lanza `ErrorDeApi` |
@@ -154,9 +155,14 @@ Detalles de implementación que conviene saber explicar:
   a la API; se eliminaron `obtenerComplejosApi`, `obtenerMisReservasApi` (datos falsos sin uso)
   y `obtenerTurnosPorDia` / `obtenerReservasFijas` (duplicada la primera; la segunda es un
   endpoint de personal).
+- **Catálogo sin conexión:** cada vez que `obtenerEspacios()` y `obtenerDeportes()` descargan
+  bien, dejan la lista **completa** en SQLite (`servicios/db.ts`, base `villaguay_deportes.db`).
+  Si no hay red o la API no responde, devuelven esa copia. Así se pueden ver el catálogo, los
+  filtros, la ficha y el mapa de los complejos sin conexión (las fotos de las tarjetas del
+  listado sí necesitan red; la foto y el video de la ficha se guardan aparte, ver §4.4).
 - **Qué se traga y qué se lanza:** las funciones del catálogo (`obtenerEspacios`,
-  `obtenerEspacioPorId`, `obtenerMisFavoritos`) devuelven un valor vacío ante cualquier fallo
-  para no romper la pantalla; las acciones del usuario (reservar, cancelar, favoritos, ingreso)
+  `obtenerEspacioPorId`, `obtenerMisFavoritos`) devuelven un valor de respaldo ante cualquier
+  fallo para no romper la pantalla; las acciones del usuario (reservar, cancelar, favoritos, ingreso)
   lanzan el error para que la pantalla muestre el mensaje.
 
 ### 3.3 `servicios/notificaciones.ts`
@@ -164,14 +170,19 @@ Detalles de implementación que conviene saber explicar:
 Detallado en [05](05-notificaciones-push.md). Resumen: al importarse registra
 `setNotificationHandler` (mostrar banner/lista/sonido con la app abierta); `registrarParaPush()`
 pide permiso, obtiene el token de Expo y lo anota en la API; `darDeBajaPush()` lo da de baja.
+Además maneja el **recordatorio local de 2 horas**: `programarRecordatorio`,
+`cancelarRecordatorio`, `cancelarTodosLosRecordatorios` y `sincronizarRecordatorios`.
 
-### 3.4 `servicios/db.ts` (sin uso)
+### 3.4 `servicios/db.ts`
 
-Define `iniciarBaseDeDatos`, `guardarEspaciosEnTelefono`/`leerEspaciosDelTelefono`,
-`guardarReservasEnTelefono`/`leerReservasDelTelefono` (SQLite) y
-`guardarPreferenciaComplejo`/`leerPreferenciaComplejo` (`kv-store`). **Ninguna pantalla los
-importa**: cada pantalla abre su propia base. Es el "diseño previsto" por el PRD (servicio de
-persistencia) que quedó sin conectar.
+Persistencia local del **catálogo**: `guardarEspaciosEnTelefono` / `leerEspaciosDelTelefono` y
+`guardarDeportesEnTelefono` / `leerDeportesDelTelefono` (SQLite, base `villaguay_deportes.db`).
+La base se abre y sus tablas (`espacios_locales`, `deportes_locales`, `reservas_locales`) se
+crean la **primera vez que se usa**, no al importar el archivo. Guardar reemplaza la lista
+completa dentro de una transacción (`withTransactionSync`), de modo que un espacio dado de baja
+en el servidor tampoco queda en el teléfono. Las funciones de `reservas_locales` y
+`guardarPreferenciaComplejo` (kv-store) existen pero ninguna pantalla las usa: "Mis reservas"
+tiene su propia base (`mis_reservas_final.db`).
 
 ### 3.5 `servicios/errores.ts`
 
@@ -199,6 +210,24 @@ Exporta `API_URL`: `process.env.EXPO_PUBLIC_API_URL` (sin barra final) o, si no 
 `EXPO_PUBLIC_*` al iniciar, por eso hay que reiniciar con `npx expo start -c` al cambiarla. El
 archivo `my-app/.env.example` muestra el formato; cada integrante crea su `.env.local`
 (ignorado por git).
+
+### 3.7 `servicios/turnos.ts`
+
+`leerTurnoId(turnoId)` desarma el id `tur-<espacioId>-<AAAAMMDD>-<HH>` con una expresión
+regular (sirve aunque el id del espacio tenga guiones: `esp-02`) y devuelve
+`{ espacioId, fecha: 'AAAA-MM-DD', hora: 'HH:00', inicio: Date }`, o `null` si el formato no
+es válido. `inicio` se construye con el desfase fijo `-03:00` (Argentina no tiene horario de
+verano), así que no depende de la zona horaria del teléfono. Lo usan "Mis reservas"
+(`formatearTurno`) y el recordatorio local.
+
+### 3.8 `servicios/archivos.ts`
+
+Copias locales de fotos y videos con la API **nueva** de `expo-file-system` (`File`, `Paths`).
+`nombreDeCache(prefijo, url)` arma el nombre del archivo con un hash (djb2) de la **ruta** de la
+URL, sin el servidor: la IP de la API cambia de red en red y no debe invalidar lo guardado.
+`archivoGuardado(nombre)` devuelve la URI local si el archivo existe (sin red) y
+`guardarArchivo(url, nombre)` lo descarga con `File.downloadFileAsync`; si falla, borra el
+archivo incompleto (en Android una descarga cortada puede dejarlo) y devuelve `null`.
 
 ## 4. Pantallas, una por una
 
@@ -237,6 +266,8 @@ Pantalla "Bienvenido". Usa `AuthContext` como el resto de la app.
   complejo, superficie y la etiqueta "Luz nocturna" si `iluminacion`. Al tocar:
   `router.push({ pathname: '/espacio/[id]', params: { id } })`.
 - **Observación:** el filtrado se hace en la app, aunque la API soporta `?deporteId=&complejo=`.
+- **Sin conexión:** `obtenerEspacios()` y `obtenerDeportes()` devuelven la última copia guardada
+  (ver §3.2), así que la lista y los filtros siguen funcionando.
 
 ### 4.4 Ficha — `espacio/[id].tsx` (`FichaEspacioScreen`)
 
@@ -249,17 +280,17 @@ La pantalla más compleja. Lee el `id` con `useLocalSearchParams`.
 | Galería comunitaria | SQLite propia `canchas_galeria.db`, tabla `galeria(espacioId PK, fotos_json)`. `useEffect` abre/crea la base (`dbLista`); `cargarGaleriaLocal()` lee y normaliza (string → `{uri, tipo:'image'}`) |
 | "Reportar" | `reportarEstado()`: pide permiso de galería (`ImagePicker.requestMediaLibraryPermissionsAsync`), abre el selector (imágenes o videos, calidad 0,7), antepone el archivo a la lista y la guarda como JSON con `INSERT OR REPLACE`. Muestra "¡Reporte subido!" |
 | Video | `ReproductorCancha` usa `useVideoPlayer` + `VideoView` (`loop`). `ReproductorMini` (silenciado) para videos de la galería |
-| Caché de medios | Intenta guardar la primera imagen y el video en el teléfono con `expo-file-system` (`esp_img_<id>.jpg`, `esp_vid_<id>.mp4`) y usar la copia local |
+| Caché de medios | Si la foto principal y el video ya están guardados en el teléfono (`servicios/archivos.ts`) los usa enseguida, también sin conexión; los que faltan se descargan **en segundo plano** y, al terminar, la pantalla pasa a usar la copia local (el video muestra "Guardado offline") |
 | CTA | Botón fijo "Ver disponibilidad" → `/espacio/disponibilidad?id=` |
 
 Puntos para tener claros:
 
 - La galería "de la comunidad" es **local a cada teléfono**: no se sube a la API ni la ven otros
   usuarios, aunque el mensaje diga "reporte subido". La API tiene `POST /archivos` para esto.
-- La caché de medios usa `(FileSystem as any).documentDirectory` y `getInfoAsync`/`downloadAsync`
-  (API **vieja** de `expo-file-system`). En el SDK 57 esas funciones lanzan error o no existen,
-  y `documentDirectory` queda `undefined`: la función sale antes de cachear. Resultado: el
-  video e imagen **se piden siempre por red**. Error **[B-04]** en [08](08-estado-actual-y-deuda-tecnica.md).
+- La caché de medios usa la API nueva de `expo-file-system` (`File`, `Paths`). El nombre del
+  archivo lleva un hash de la ruta de la URL: si la foto o el video cambian en el servidor, se
+  guardan de nuevo. La descarga **no demora la pantalla** (antes se esperaba a que terminara).
+  Los archivos quedan en el directorio de documentos del teléfono y no se borran solos.
 - La conexión SQLite está en una variable de módulo (`let db`) para no abrirla en cada render.
 
 ### 4.5 Disponibilidad — `espacio/disponibilidad.tsx`
@@ -299,6 +330,8 @@ Puntos para tener claros:
   dibujado con `react-native-qrcode-svg` (`<QRCode value={qrData} size={150} />`). Botón
   "Volver al catálogo" (`router.navigate('/(tabs)/espacios')`).
 - Muestra "Precio del turno: $X" y aclara que el pago es en el complejo (la app no cobra).
+- Tras reservar llama a `programarRecordatorio(reserva, espacio.nombre)` (sin esperar): el
+  teléfono avisará 2 horas antes del turno.
 
 ### 4.7 Mis Reservas — `(tabs)/index.tsx`
 
@@ -318,15 +351,19 @@ Pantalla clave del requisito offline.
 5. **Tarjeta de reserva:** estilo "wireframe" del PRD. Título "Mi reserva – ESTADO", nombre de la
    cancha, fecha/hora, complejo, precio ("se paga en el lugar"), **código QR** (si no está
    cancelada) y botones "Cómo llegar" y "Cancelar reserva".
-6. **`formatearTurno(turnoId)`:** desarma el id `tur-esp-02-20260919-19` por `split('-')`:
-   `partes[3]` = fecha `AAAAMMDD`, `partes[4]` = hora. Depende del formato D1 (si cambia el
-   id, se rompe). `horaFin` = hora + 1.
+6. **`formatearTurno(turnoId)`:** usa `leerTurnoId` (`servicios/turnos.ts`) para obtener la
+   fecha y la hora del id `tur-esp-02-20260919-19`. Sigue dependiendo del formato D1, pero el
+   desarmado está en un solo lugar. `horaFin` = hora + 1.
 7. **Cómo llegar:** `Linking.openURL` a una búsqueda de Google Maps del complejo + ", Villaguay".
 8. **Cancelar:** `Alert` de confirmación → `cancelarReserva(id)` → recarga. El botón sólo se
    ve en "próximas" y **con conexión**. `plazoDeCancelacion(cancelableHasta)` calcula el aviso
    desde el dato que entrega la API: "Se puede cancelar sin aviso hasta las 15:00 de hoy" (o
    "del 19/09" si es otro día). Si el plazo ya pasó, **oculta el botón** y muestra "Ya pasó el
    plazo para cancelar. Avisale al encargado.".
+9. **Recordatorios:** al cargar las reservas "próximas" con conexión se llama a
+   `sincronizarRecordatorios(reservas, espacios)`, que programa el aviso de 2 horas de cada
+   reserva confirmada y cancela el de las que ya no lo están (por ejemplo, las que canceló un
+   bloqueo del encargado). Al cancelar una reserva desde la app se llama a `cancelarRecordatorio`.
 
 ### 4.8 Escáner — `(tabs)/escaner.tsx`
 
@@ -419,4 +456,3 @@ Selector de foto con `expo-image-picker` (sólo imágenes, aspecto 4:3, calidad 
 | `components/*`, `constants/theme.ts`, `hooks/use-color-scheme*.ts`, `global.css`, `scripts/reset-project.js`, `assets/images/*` | Plantilla de Expo (`create-expo-app`); no se usan. Varios **no compilan** (`useTheme` inexistente, `global.css`, `.module.css`) |
 | `hooks/useLogin.ts` | Hook de login con una URL `TU_IP_LOCAL`; reemplazado por `AuthContext` |
 | `mocks/datos.ts` | Datos falsos del PRD; ya no se importan |
-| `servicios/db.ts` | Servicio de persistencia no conectado |

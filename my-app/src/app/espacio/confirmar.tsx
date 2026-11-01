@@ -7,6 +7,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { useTema } from '../../hooks/use-theme';
 import { obtenerEspacioPorId, crearReserva } from '../../servicios/reservas';
 import { codigoDe, mensajeDe } from '../../servicios/errores';
+import { programarRecordatorio } from '../../servicios/notificaciones';
 import { Espacio } from '../../tipos';
 
 export default function ConfirmarReservaScreen() {
@@ -39,6 +40,8 @@ export default function ConfirmarReservaScreen() {
       const reservaGenerada = await crearReserva(turnoId as string, personas);
       setQrData(reservaGenerada.codigoQr);
       setConfirmado(true);
+      // Aviso local para 2 horas antes del turno (no demora ni rompe la confirmación)
+      programarRecordatorio(reservaGenerada, espacio?.nombre);
     } catch (error) {
       const codigo = codigoDe(error);
       if (codigo === 'SIN_SESION') {

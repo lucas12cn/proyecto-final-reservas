@@ -88,7 +88,7 @@ y las diferencias están en [08](08-estado-actual-y-deuda-tecnica.md).
 | RF-15 | Encargado escanea el QR y se registra el ingreso | PRD §4 | ✅ `POST /ingresos`; el escáner es sólo para personal |
 | RF-16 | Mensajes claros si el código no corresponde | PRD §4 | ✅ se muestra el mensaje de la API |
 | RF-17 | Marcar "no se presentó" | PRD §4 | ❌ no implementado en la app |
-| RF-18 | Recordatorio 2 h antes | PRD §5 | ❌ no implementado (es una notificación **local**) |
+| RF-18 | Recordatorio 2 h antes | PRD §5 | ✅ notificación **local** programada al reservar (a confirmar en un teléfono) |
 | RF-19 | Aviso por suspensión (bloqueo) | PRD §5 | ✅ push del servidor |
 | RF-20 | Aviso por turno liberado en favorito | PRD §5 | ✅ push del servidor |
 | RF-21 | Marcar espacios favoritos | PRD §5 | ✅ corazón en la ficha |
@@ -100,7 +100,7 @@ y las diferencias están en [08](08-estado-actual-y-deuda-tecnica.md).
 
 | ID | Requisito | Cómo se atiende |
 |---|---|---|
-| RNF-01 | Funcionar sin conexión para ver reservas y QR | Caché en SQLite (`mis_reservas_final.db`) al cargar "Mis reservas" |
+| RNF-01 | Funcionar sin conexión para ver reservas, QR y catálogo | Caché en SQLite: reservas (`mis_reservas_final.db`) y catálogo (`villaguay_deportes.db`); foto y video de la ficha en el teléfono |
 | RNF-02 | Sesión segura | JWT en `expo-secure-store`; contraseñas con `scrypt` en el servidor |
 | RNF-03 | Acceso restringido por rol | Guard global en la API (`GuardAutenticacion`) |
 | RNF-04 | Imposibilidad de doble reserva | Índice único sobre la columna `ocupacion` |
@@ -192,9 +192,9 @@ pantalla habla directamente con la red; todo pasa por una capa de servicios así
 | Cámara (QR) | `expo-camera` | `(tabs)/escaner.tsx` | ✅ |
 | Galería | `expo-image-picker` | `espacio/[id].tsx`, `(tabs)/estado-cancha.tsx` | ✅ (subida simulada/local) |
 | Ubicación y mapa | `expo-location` + mapa | `(tabs)/mapa.tsx` | ✅ (Leaflet en WebView; `react-native-maps` está instalado pero no se usa) |
-| Notificaciones | `expo-notifications` | `servicios/notificaciones.ts`, `_layout.tsx` | ✅ push · ❌ recordatorio local |
-| Persistencia y red | `expo-sqlite`, `kv-store`, `expo-network` | `(tabs)/index.tsx`, `espacio/[id].tsx`, `servicios/*` | ✅ SQLite y red · `kv-store` sólo en `servicios/db.ts` (sin uso) |
+| Notificaciones | `expo-notifications` | `servicios/notificaciones.ts`, `_layout.tsx` | ✅ push y recordatorio local |
+| Persistencia y red | `expo-sqlite`, `kv-store`, `expo-network` | `(tabs)/index.tsx`, `espacio/[id].tsx`, `servicios/db.ts`, `servicios/*` | ✅ SQLite (reservas y catálogo) y red · `kv-store` sólo en `servicios/db.ts` (sin uso real) |
 | Seguridad | `expo-secure-store`, `expo-local-authentication` | `AuthContext`, `app/index.tsx`, `escaner.tsx` | ✅ |
 | Háptica / sensores | `expo-haptics`, `expo-sensors` | `app/index.tsx`, `escaner.tsx` | ✅ háptica · ❌ sensores sin uso |
-| Sistema de archivos | `expo-file-system` | `espacio/[id].tsx` | ⚠️ implementado con la API vieja: **no funciona** (ver 08) |
+| Sistema de archivos | `expo-file-system` | `servicios/archivos.ts`, `espacio/[id].tsx` | ✅ copia local de foto y video (API nueva `File`/`Paths`) |
 | Multimedia | `expo-video` | `espacio/[id].tsx` | ✅ |

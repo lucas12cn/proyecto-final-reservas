@@ -84,7 +84,9 @@ dias.push({ iso: aIso(fecha), nombre: …, numero: fecha.getDate() });
   mostrar el ícono QR y permitir la ruta sólo si `usuario?.rol` es `encargado` o
   `administrador`.
 
-### B-04 · La caché de imagen/video usa la API vieja de `expo-file-system` y no funciona — **media** *(a confirmar en dispositivo)*
+### B-04 · La caché de imagen/video usa la API vieja de `expo-file-system` y no funciona — **media** ✅ RESUELTO
+
+> **Resuelto:** `servicios/archivos.ts` usa `File`/`Paths` de la API nueva; la ficha usa la copia local si existe y descarga el resto en segundo plano (ya no demora la pantalla). A confirmar en un teléfono.
 
 - **Dónde:** `app/espacio/[id].tsx` → `cargarDetalle()`.
 - **Causa:** usa `FileSystem.documentDirectory`, `getInfoAsync` y `downloadAsync`. En
@@ -152,7 +154,9 @@ setVideoCache(destino.uri);
 - **Arreglo (M):** en el helper de errores, si el código es `NO_AUTENTICADO`, llamar a
   `logout()` y llevar a `/login`.
 
-### B-11 · El catálogo no funciona sin conexión — **media**
+### B-11 · El catálogo no funciona sin conexión — **media** ✅ RESUELTO
+
+> **Resuelto:** `obtenerEspacios`, `obtenerEspacioPorId` y `obtenerDeportes` guardan el catálogo en SQLite (`servicios/db.ts`) y lo devuelven si no hay conexión.
 
 - Sólo "Mis reservas" tiene caché. `obtenerEspacios()` sin red devuelve `[]` (traga el error) y
   el catálogo, la ficha y el mapa quedan vacíos. El PRD pide "catálogo de espacios" en SQLite.
@@ -176,10 +180,10 @@ setVideoCache(destino.uri);
 |---|---|---|---|
 | G-01 | Registro real del ingreso con QR (§4) | ✅ Resuelto (llama a `POST /ingresos`) | — |
 | G-02 | Marcar "no se presentó" (§4) | Sin pantalla; la API lo tiene (`POST /reservas/:id/ausente`) | M |
-| G-03 | **Recordatorio 2 h antes** (§5) | No implementado | M |
+| G-03 | **Recordatorio 2 h antes** (§5) | ✅ Resuelto (notificación local; a confirmar en un teléfono) | — |
 | G-04 | Pantallas del personal (§6): bloqueos, fijas, agenda, precio | No hay | L |
 | G-05 | Distinguir roles en la interfaz (D6) | ⚠️ Parcial: el escáner es sólo para personal; faltan las demás pantallas del personal (G-04) | M |
-| G-06 | Guardar fotos/video para verlos sin datos (§capacidades) | No funciona (B-04) | M |
+| G-06 | Guardar fotos/video para verlos sin datos (§capacidades) | ✅ Resuelto (B-04) | — |
 | G-07 | `expo-sensors` y `kv-store` | Instalados, sin uso real | S |
 | G-08 | `react-native-maps` (PRD) | Se usó Leaflet en WebView (decisión consciente) | — |
 | G-09 | Build de producción con EAS (Entrega) | No hay `eas.json`; `name: "my-app"`, `package: com.anonymous.myapp` | M |
@@ -213,10 +217,10 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | D-01 | ✅ **IP de la API** | Resuelto: `servicios/config.ts` lee `EXPO_PUBLIC_API_URL` (`.env.local`) | — |
 | D-02 | ✅ Servicios simulados | Resuelto: se eliminaron `obtenerComplejosApi` y `obtenerMisReservasApi`; `registrarIngresoApi` es real | — |
 | D-03 | ⚠️ Funciones duplicadas | Parcial: se eliminó `obtenerTurnosPorDia`; los filtros del catálogo siguen en el cliente | S |
-| D-04 | Capas saltadas | Pantallas abren SQLite y `expo-file-system` directamente; `servicios/db.ts` sin uso | M |
+| D-04 | ⚠️ Capas saltadas | Parcial: la ficha ya usa `servicios/archivos.ts` y el catálogo usa `servicios/db.ts`; "Mis reservas" y la galería de la ficha siguen abriendo su propia base SQLite | M |
 | D-05 | Mucho `any` | `useState<any[]>`, `catch (error: any)`, `ThemeContext = createContext<any>`; usar los tipos del PRD | M |
 | D-06 | Dos bases SQLite y dos paletas | `mis_reservas_final.db`, `canchas_galeria.db`, `villaguay_deportes.db` (sin uso); `theme/colors.ts` sin uso | S |
-| D-07 | Acoplamiento al formato del id de turno | `formatearTurno` parte el id por `-`; mejor pedir `GET /reservas/:id` o agregar fecha/hora a la reserva guardada | M |
+| D-07 | ⚠️ Acoplamiento al formato del id de turno | Parcial: el desarmado está en un solo lugar (`servicios/turnos.ts`); sigue dependiendo del formato | S |
 | D-08 | Código muerto y copias de respaldo | `*.txt` en `app/` y `servicios/`, `hooks/useLogin.ts`, `mocks/datos.ts`, plantilla de Expo | S |
 | D-09 | La app no compila limpio con `tsc` | 5 errores en archivos de la plantilla (`useTheme`, `global.css`, `animated-icon.module.css`) | S |
 | D-10 | Dependencias sin uso | `axios`, `zod`, `react-hook-form`, `@hookform/resolvers`, `react-native-maps`; y `package.json` en la raíz con las mismas | S |
@@ -230,7 +234,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 
 ## 5. Plan de cierre recomendado (orden sugerido)
 
-**Avance:** las prioridades **1 a 6 y la 9 están hechas** (marcadas ✅ en la tabla de abajo). Siguen la 7 (recordatorio de 2 h), la 8 (caché de espacios y archivos) y las siguientes.
+**Avance:** las prioridades **1 a 9 están hechas** (marcadas ✅ en la tabla de abajo). Siguen la 10 (`eas.json` y datos definitivos), la 11 (limpieza) y la 12 (ausentes y pantallas del personal).
 
 | Prioridad | Tarea | Resuelve |
 |---|---|---|
@@ -240,8 +244,8 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | 4 ✅ | Selector de cantidad de personas | B-07 |
 | 5 ✅ | Texto de cancelación desde `cancelableHasta` | B-06 |
 | 6 ✅ | Quitar credenciales precargadas | B-05 |
-| 7 | Recordatorio local de 2 h | G-03 |
-| 8 | Caché de espacios en SQLite + API nueva de archivos | B-11, B-04, G-06 |
+| 7 ✅ | Recordatorio local de 2 h | G-03 |
+| 8 ✅ | Caché de espacios en SQLite + API nueva de archivos | B-11, B-04, G-06 |
 | 9 ✅ | `config.ts` único para la URL de la API | D-01 |
 | 10 | `eas.json`, nombre y `package` definitivos, build de producción | G-09 |
 | 11 | Limpieza (código muerto, dependencias, `tsc` limpio) | D-02…D-12 |

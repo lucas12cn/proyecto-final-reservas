@@ -7,6 +7,8 @@ import * as SQLite from 'expo-sqlite';
 import { useTema } from '../../hooks/use-theme';
 import { useAuth } from '../../contexto/AuthContext';
 import { obtenerMisReservas, cancelarReserva, obtenerEspacios } from '../../servicios/reservas';
+import { cancelarRecordatorio, sincronizarRecordatorios } from '../../servicios/notificaciones';
+import { leerTurnoId } from '../../servicios/turnos';
 
 export default function MisReservasScreen() {
   const { paleta } = useTema();
@@ -41,6 +43,10 @@ export default function MisReservasScreen() {
         
         setEspacios(mapaEspacios);
         setReservas(listaReservas);
+
+        // Recordatorios de 2 h al día con lo que dice el servidor (también cancela los de
+        // reservas que ya no están confirmadas, p. ej. las que canceló un bloqueo).
+        if (filtro === 'proximas') sincronizarRecordatorios(listaReservas, mapaEspacios);
 
         // Guardar en caché con SQLite (Métodos sincrónicos para evitar crasheos en Android)
         try {
@@ -115,6 +121,7 @@ export default function MisReservasScreen() {
           onPress: async () => {
             try {
               await cancelarReserva(id);
+              cancelarRecordatorio(id); // ya no hay turno que recordar
               Alert.alert('Éxito', 'La reserva fue cancelada.');
               cargarMisReservas(); 
             } catch (error: any) {
@@ -144,14 +151,10 @@ export default function MisReservasScreen() {
     return { vencido: false, texto: `Se puede cancelar sin aviso\nhasta las ${hora} ${dia}` };
   };
 
+  // Fecha (AAAA-MM-DD) y hora (HH:00) del turno, desarmando su id (ver servicios/turnos.ts)
   const formatearTurno = (turnoId: string) => {
-    if (!turnoId) return { fecha: '', hora: '' };
-    const partes = turnoId.split('-');
-    if (partes.length < 5) return { fecha: '', hora: '' };
-    const horaStr = partes[4] + ':00';
-    const f = partes[3];
-    const fechaStr = `${f.substring(0,4)}-${f.substring(4,6)}-${f.substring(6,8)}`;
-    return { fecha: fechaStr, hora: horaStr };
+    const turno = leerTurnoId(turnoId);
+    return turno ? { fecha: turno.fecha, hora: turno.hora } : { fecha: '', hora: '' };
   };
 
   return (

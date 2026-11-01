@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import { iniciarSesionApi, registrarUsuarioApi } from '../servicios/auth';
-import { registrarParaPush, darDeBajaPush } from '../servicios/notificaciones';
+import { registrarParaPush, darDeBajaPush, cancelarTodosLosRecordatorios } from '../servicios/notificaciones';
 import { registrarAlSesionVencida } from '../servicios/errores';
 import { Usuario } from '../tipos';
 
@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const limpiarSesion = async () => {
     setToken(null);
     setUsuario(null);
+    await cancelarTodosLosRecordatorios(); // los recordatorios son de la cuenta que se va
     await SecureStore.deleteItemAsync('tokenReserva');
     await SecureStore.deleteItemAsync('usuarioReserva');
   };

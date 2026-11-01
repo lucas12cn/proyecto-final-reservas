@@ -162,8 +162,10 @@ my-app/src/
 │   ├── errores.ts            ErrorDeApi, lanzarSiError, sesión vencida
 │   ├── auth.ts               /auth/*, /yo, /dispositivos
 │   ├── reservas.ts           /espacios, /deportes, /reservas, /ingresos, favoritos
-│   ├── notificaciones.ts     Permiso, token de Expo, alta/baja
-│   └── db.ts                 SQLite/kv (helpers sin uso actual)
+│   ├── notificaciones.ts     Permiso, token de Expo, alta/baja, recordatorio local de 2 h
+│   ├── turnos.ts             Desarma el id de turno (tur-esp-02-AAAAMMDD-HH)
+│   ├── archivos.ts           Copia local de fotos/videos (expo-file-system nuevo)
+│   └── db.ts                 SQLite: catálogo de espacios y deportes (respaldo sin conexión)
 ├── tipos/index.ts            Tipos del PRD (copia literal)
 └── mocks/datos.ts            Datos falsos del PRD (sin uso actual)
 ```
@@ -203,6 +205,9 @@ varias pantallas llaman directamente a SQLite o `expo-file-system`.
 | Usuario (`usuarioReserva`, JSON) | `expo-secure-store` | `AuthContext`, `perfil.tsx` (al editar) | `AuthContext` al arrancar |
 | Token de Expo (`tokenPushExpo`) | `expo-secure-store` | `servicios/notificaciones.ts` | el mismo (para dar de baja) |
 | Reservas y espacios (caché) | SQLite `mis_reservas_final.db`, tabla `cache_reservas` | `(tabs)/index.tsx` | `(tabs)/index.tsx` sin conexión |
+| Catálogo (espacios y deportes) | SQLite `villaguay_deportes.db`, tablas `espacios_locales` y `deportes_locales` | `servicios/reservas.ts` (vía `db.ts`) al descargar bien | el mismo, cuando no hay red |
+| Foto principal y video de la ficha | Directorio de documentos del teléfono (`esp_img_<id>_<hash>.jpg`, `esp_vid_<id>_<hash>.mp4`) | `servicios/archivos.ts`, en segundo plano | `espacio/[id].tsx` |
+| Recordatorios de 2 h | Notificaciones programadas del sistema (`recordatorio-<reservaId>`) | `servicios/notificaciones.ts` | el sistema operativo |
 | Galería de la cancha | SQLite `canchas_galeria.db`, tabla `galeria` | `espacio/[id].tsx` | `espacio/[id].tsx` |
 | Tema elegido | Estado de React en `ThemeProvider` | `perfil.tsx` | toda la app — **no persiste** al cerrar la app |
 | Sesión y usuario actuales en memoria | `useState` en `AuthContext` | `AuthContext` | `useAuth()` |

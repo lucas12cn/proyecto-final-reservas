@@ -19,7 +19,7 @@ explica el diseño completo, el código y cómo probarlo.
 | 1 | Un bloqueo cancela una reserva confirmada | El dueño de esa reserva | `Reserva cancelada` | `Cancelamos tu reserva del 14/11 a las 21:00. Motivo: Cancha anegada.` | `{ reservaId }` | `admin.service.ts` |
 | 2 | Se cancela una reserva y el turno sigue siendo futuro | Quienes tienen ese espacio como favorito, **menos quien canceló** | `Se liberó un turno` | `Cancha 2 — Fútbol 5 tiene libre el turno del 14/11 a las 21:00.` | `{ espacioId, turnoId }` | `bookings.service.ts` |
 | 3 | `POST /dispositivos/prueba` | El propio usuario, en todos sus teléfonos | `Notificación de prueba` | `Si ves esto, las notificaciones andan.` | `{ tipo: 'prueba' }` | `devices.controller.ts` |
-| — | **Recordatorio 2 h antes del turno** | — | — | — | — | **No implementado**: es *local* del teléfono (R22); la API no lo manda |
+| L | **Recordatorio 2 h antes del turno** (local) | El dueño de la reserva, en su teléfono | `Tu turno es en 2 horas` | `Cancha 2 — Fútbol 5 · 21:00. Tené a mano el código QR.` | `{ tipo: 'recordatorio', reservaId }` | `servicios/notificaciones.ts` (lo programa la **app**, R22) |
 
 > El `Usuario` del PRD no tiene un interruptor de avisos (D7): se notifica siempre. Para dejar
 > de recibir avisos de un espacio, se lo saca de favoritos.
@@ -219,6 +219,37 @@ personalizada); y **no se está en la pantalla de entrada** (`useSegments`): as�
 tocado con la app cerrada **no se saltea la huella/PIN**. Después de navegar se llama a
 `clearLastNotificationResponse()` para no repetir la navegación.
 
+### 5.4 Recordatorio local de 2 horas
+
+A diferencia de los otros avisos, **no lo manda el servidor**: lo programa el propio teléfono
+(regla R22 del PRD), por eso llega aunque no haya señal.
+
+| Función (`servicios/notificaciones.ts`) | Qué hace |
+|---|---|
+| `programarRecordatorio(reserva, nombreEspacio)` | Programa el aviso para `inicio − 2 h`. No programa si la reserva no está `confirmada` (en ese caso cancela el que hubiera), si faltan menos de 2 h, si el formato del id es inválido o si no hay permiso. Nunca lanza |
+| `cancelarRecordatorio(reservaId)` | Cancela el aviso de una reserva |
+| `cancelarTodosLosRecordatorios()` | Los cancela todos (se usa al cerrar sesión: son de esa cuenta) |
+| `sincronizarRecordatorios(reservas, espacios)` | Programa los de las confirmadas y cancela los de las demás |
+
+Cómo funciona:
+
+- **Identificador fijo por reserva** (`recordatorio-<reservaId>`): programarlo dos veces no lo
+  duplica (igual se cancela antes de programar) y se cancela sabiendo sólo el id de la reserva.
+- **La hora sale del id del turno** (`leerTurnoId`, con desfase fijo `-03:00`), no de la zona del
+  teléfono. Disparador: `SchedulableTriggerInputTypes.DATE` con `channelId: 'default'` (Android).
+- **Cuándo se programa:** (1) al confirmar una reserva (`confirmar.tsx`); (2) cada vez que
+  "Mis reservas" carga las "próximas" con conexión (`sincronizarRecordatorios`): repara
+  reservas hechas en otro teléfono y cancela los avisos de las que ya no están confirmadas
+  (por ejemplo, canceladas por un bloqueo).
+- **Cuándo se cancela:** al cancelar la reserva desde la app y al cerrar sesión o vencer la sesión.
+- **Permiso:** si todavía se puede preguntar, lo pide; si el usuario lo negó, no programa.
+- **Al tocarlo** abre Mis Reservas (no trae `espacioId`).
+
+Limitaciones: una reserva hecha desde otro teléfono sólo se recuerda cuando este teléfono abre
+"Mis reservas" con conexión; no se recuerda una reserva con menos de 2 horas de anticipación; y
+al reiniciar el teléfono Android conserva las notificaciones programadas (lo gestiona el sistema),
+pero esto **debe confirmarse en un dispositivo real**.
+
 ## 6. Ciclo de vida del token
 
 ```mermaid
@@ -272,7 +303,7 @@ Con el valor por defecto, los avisos aparecen en la consola de la API. Sirve par
 | **Android + Expo Go** | Desde Expo SDK 53, Expo Go en Android **no soporta push remotas**. Hace falta un *development build* o el build de producción. En iPhone sí funciona con Expo Go |
 | Emuladores | Sin Google Play no se obtiene token (`Device.isDevice` es falso) |
 | `projectId` | `getExpoPushTokenAsync` lo necesita; sale de `eas init` (`extra.eas.projectId`). Sin eso puede fallar |
-| Recordatorio 2 h antes | **No implementado.** Es una notificación local (`scheduleNotificationAsync`) que la app debería programar al reservar y cancelar al cancelar la reserva |
+| Recordatorio 2 h antes | Implementado como notificación **local** (ver §5.4); falta confirmarlo en un teléfono real |
 | Destino de "Reserva cancelada" | Lleva a Mis Reservas, no a la reserva concreta (no hay pantalla de detalle) |
 | Aviso con la app abierta | Se muestra como banner, pero no refresca la pantalla actual (hay que volver a entrar a la pestaña) |
 | Sin reintentos | Si Expo falla, el aviso se pierde (se loguea); no hay cola |
@@ -291,5 +322,5 @@ Con el valor por defecto, los avisos aparecen en la consola de la API. Sirve par
   `Avisos` corre el envío "en segundo plano" y sólo registra errores.
 - **¿Por qué 100 mensajes por pedido?** Es el máximo que admite la API de push de Expo.
 - **¿Qué diferencia hay entre push remota y notificación local?** La remota la manda el
-  servidor (suspensión, turno liberado); la local la programa el teléfono sin red
-  (recordatorio de 2 h).
+  servidor (suspensión, turno liberado) y necesita red y token de Expo; la local la programa el
+  propio teléfono (`scheduleNotificationAsync`) y llega sin señal (recordatorio de 2 h).

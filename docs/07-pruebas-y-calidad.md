@@ -105,6 +105,10 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | T-28 | Cantidad de personas | Confirmar una reserva bajando el selector | El ingreso (T-27) y la reserva muestran esa cantidad |
 | T-29 | Fecha por la noche | Entre las 21:00 y 24:00, abrir la grilla | "Hoy" muestra los turnos de hoy y los 7 días cargan |
 | T-30 | Sesión vencida | Borrar o alterar el token (o esperar 30 días) y recargar Mis Reservas | Aviso "Sesión vencida" y vuelve al ingreso |
+| T-31 | Recordatorio | Reservar el turno que empiece dentro de 2 a 3 horas y esperar a que falten 2 h | Llega "Tu turno es en 2 horas" y al tocarla abre Mis Reservas |
+| T-32 | Recordatorio cancelado | Reservar y cancelar | No llega el recordatorio |
+| T-33 | Catálogo sin conexión | Abrir Canchas con conexión, activar modo avión y reabrir la app | La lista, los filtros y la ficha siguen disponibles |
+| T-34 | Foto y video sin conexión | Abrir una ficha con conexión (esperar unos segundos), modo avión, volver a abrirla | La foto principal y el video ("Guardado offline") se ven |
 
 ### 4.3 Casos de notificaciones
 

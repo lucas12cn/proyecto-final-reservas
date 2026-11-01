@@ -89,8 +89,8 @@ privadas y alquiler de elementos: el PRD los excluye de la primera versión. La 
 precio pero no cobra.
 
 **¿Qué requisitos del PRD no pudieron cumplir?** Hay que responder con la tabla de
-[08 §3](08-estado-actual-y-deuda-tecnica.md): marcar ausentes, recordatorio local, pantallas
-del personal (bloqueos, fijas, agenda, precio), caché de fotos y build EAS. Y explicar cómo se cerrarían.
+[08 §3](08-estado-actual-y-deuda-tecnica.md): marcar ausentes, pantallas del personal
+(bloqueos, fijas, agenda, precio) y el build de producción con EAS. Y explicar cómo se cerrarían.
 
 **¿Cómo se organizó el trabajo?** (Completar con el reparto real.) La secuencia técnica fue:
 base y navegación → catálogo → disponibilidad y reserva → sesión → Mis reservas y offline →
@@ -143,7 +143,8 @@ siempre; si es tarde, suma una "cancelación tardía" al jugador.
 **¿Dónde se guarda la sesión y por qué ahí?** En `expo-secure-store` (Keychain / Keystore). El
 PRD prohíbe `kv-store` para el token porque no es seguro.
 
-**¿Cómo funciona lo offline?** Al cargar Mis Reservas con red, se guardan las reservas y los
+**¿Cómo funciona lo offline?** Hay tres cosas guardadas en el teléfono: las reservas con su QR,
+el catálogo (espacios y deportes) y la foto y el video de cada ficha ya vista. Para las reservas: al cargar Mis Reservas con red, se guardan las reservas y los
 espacios en SQLite (`cache_reservas`, clave = filtro). Sin red (`Network.getNetworkStateAsync`)
 se leen de ahí y se muestra el cartel. El QR se dibuja de `codigoQr`, que va incluido en la
 reserva.
@@ -181,9 +182,10 @@ de los afectados y le pide a Expo que los entregue.
 **¿Por qué no funciona en Expo Go con Android?** Desde SDK 53 Expo Go en Android no soporta push
 remotas; se necesita un development build. En iPhone sí.
 
-**¿Qué diferencia hay con el recordatorio de 2 horas?** Es local (lo programa el teléfono con
-`scheduleNotificationAsync`); aún no está implementado, y [08](08-estado-actual-y-deuda-tecnica.md)
-trae el código para hacerlo.
+**¿Cómo funciona el recordatorio de 2 horas?** Es una notificación **local**: al reservar, la
+app la programa en el teléfono con `scheduleNotificationAsync` (disparador por fecha = inicio −
+2 h, identificador `recordatorio-<reservaId>`). No necesita servidor ni señal. Se cancela al
+cancelar la reserva o cerrar sesión y se reconcilia cada vez que se cargan "Mis reservas".
 
 ### Calidad y seguridad
 

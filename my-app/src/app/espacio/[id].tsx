@@ -6,8 +6,8 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import * as ImagePicker from 'expo-image-picker';
 import * as SQLite from 'expo-sqlite';
-import * as FileSystem from 'expo-file-system';
 import { useTema } from '../../hooks/use-theme';
+import { archivoGuardado, guardarArchivo, nombreDeCache } from '../../servicios/archivos';
 import { obtenerEspacioPorId, alternarFavoritoApi, obtenerMisFavoritos } from '../../servicios/reservas';
 import { Espacio } from '../../tipos';
 
@@ -93,39 +93,26 @@ export default function FichaEspacioScreen() {
       const data = await obtenerEspacioPorId(id as string);
       if (!data) { setCargando(false); return; }
       setEspacio(data);
-      
+
+      // Copias guardadas en el teléfono (se leen sin red): se usan enseguida, también offline.
+      const imgUrl = data.imagenes && data.imagenes.length > 0 ? data.imagenes[0] : null;
+      const vidUrl = data.videoUrl;
+      const nombreImg = imgUrl ? nombreDeCache(`esp_img_${id}`, imgUrl) : null;
+      const nombreVid = vidUrl ? nombreDeCache(`esp_vid_${id}`, vidUrl) : null;
+      setImagenCache(nombreImg ? archivoGuardado(nombreImg) : null);
+      setVideoCache(nombreVid ? archivoGuardado(nombreVid) : null);
+
       const misFavs = await obtenerMisFavoritos();
       setEsFavorito(misFavs.some((fav: any) => String(fav.id || fav) === String(id)));
+      setCargando(false);
 
-      const directorio = (FileSystem as any).documentDirectory;
-      if (!directorio) return;
-
-      const imgUrl = data.imagenes && data.imagenes.length > 0 ? data.imagenes[0] : null;
-      if (imgUrl) {
-        const fileUriImg = directorio + `esp_img_${id}.jpg`;
-        const infoImg = await FileSystem.getInfoAsync(fileUriImg);
-        if (infoImg.exists) { 
-          setImagenCache(infoImg.uri); 
-        } else {
-          try {
-            const resultImg = await FileSystem.downloadAsync(imgUrl, fileUriImg);
-            setImagenCache(resultImg.uri);
-          } catch (e) { setImagenCache(imgUrl); }
-        }
+      // Lo que todavía no está guardado se descarga en segundo plano (sin hacer esperar a la
+      // pantalla); cuando termina se pasa a usar la copia local.
+      if (imgUrl && nombreImg && !archivoGuardado(nombreImg)) {
+        guardarArchivo(imgUrl, nombreImg).then((uri) => { if (uri) setImagenCache(uri); });
       }
-
-      const vidUrl = data.videoUrl;
-      if (vidUrl) {
-        const fileUriVid = directorio + `esp_vid_${id}.mp4`;
-        const infoVid = await FileSystem.getInfoAsync(fileUriVid);
-        if (infoVid.exists) { 
-          setVideoCache(infoVid.uri); 
-        } else {
-          try {
-            const resultVid = await FileSystem.downloadAsync(vidUrl, fileUriVid);
-            setVideoCache(resultVid.uri);
-          } catch (e) { setVideoCache(vidUrl); }
-        }
+      if (vidUrl && nombreVid && !archivoGuardado(nombreVid)) {
+        guardarArchivo(vidUrl, nombreVid).then((uri) => { if (uri) setVideoCache(uri); });
       }
     } catch (error) {
       console.log("Error al cargar la cancha:", error);

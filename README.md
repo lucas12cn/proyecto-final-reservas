@@ -122,7 +122,10 @@ Hay dos avisos que manda el servidor:
 | Un bloqueo del encargado cancela una reserva | Dueño de la reserva | "Reserva cancelada" |
 | Alguien cancela y el turno sigue siendo futuro | Quienes tienen ese espacio como favorito (salvo quien canceló) | "Se liberó un turno" |
 
-Para que lleguen de verdad:
+Además, la app programa en el propio teléfono un **recordatorio local** ("Tu turno es en 2
+horas") al reservar. No necesita servidor ni conexión y funciona también en Expo Go.
+
+Para que lleguen las notificaciones del servidor:
 
 1. En `api-reservas-deportivas/.env` poné `NOTIFICACIONES=expo` y reiniciá la API. Con el valor
    por defecto (`registro`) los avisos **sólo se escriben en la consola de la API**.
