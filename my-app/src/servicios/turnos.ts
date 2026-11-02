@@ -25,3 +25,18 @@ export const leerTurnoId = (turnoId: string): TurnoLeido | null => {
 
   return { espacioId, fecha, hora: `${hh}:00`, inicio };
 };
+
+// AAAA-MM-DD con la fecha LOCAL del teléfono. No usar toISOString(): devuelve la fecha en UTC y
+// en Argentina (UTC-3), de 21:00 a 24:00, UTC ya es el día siguiente.
+export const aFechaLocal = (fecha: Date): string => {
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  return `${fecha.getFullYear()}-${mes}-${dia}`;
+};
+
+/** Suma (o resta) días a una fecha AAAA-MM-DD y devuelve otra AAAA-MM-DD. */
+export const desplazarDia = (fecha: string, dias: number): string => {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  // Mediodía: evita saltos por cambios de horario del teléfono
+  return aFechaLocal(new Date(anio, mes - 1, dia + dias, 12));
+};

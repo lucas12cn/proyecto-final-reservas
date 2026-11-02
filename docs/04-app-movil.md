@@ -45,6 +45,7 @@ flowchart TB
 | `/(tabs)/espacios` | `app/(tabs)/espacios.tsx` | Pestaña 2 | Tras login/registro; "Volver al catálogo" |
 | `/(tabs)/perfil` | `app/(tabs)/perfil.tsx` | Pestaña 3 | Barra inferior |
 | `/mapa` | `app/(tabs)/mapa.tsx` | Pestaña **oculta** (`href: null`) | Menú ☰ de la cabecera |
+| `/agenda` | `app/(tabs)/agenda.tsx` | Pestaña **oculta** | Menú ☰ (sólo encargado/administrador) |
 | `/escaner` | `app/(tabs)/escaner.tsx` | Pestaña **oculta** | Ícono QR de la cabecera (sólo se muestra a encargados y administradores) |
 | `/espacio/[id]` | `app/espacio/[id].tsx` | Stack | Tarjeta del catálogo; toque de un aviso "Se liberó un turno" |
 | `/espacio/disponibilidad` | `app/espacio/disponibilidad.tsx` | Stack | Botón "Ver disponibilidad" de la ficha |
@@ -150,6 +151,9 @@ lanza `errorSinSesion()` (código `SIN_SESION`).
 | `obtenerMisReservas(cuando)` | `GET /yo/reservas?cuando=proximas\|pasadas` | Lanza `ErrorDeApi` |
 | `obtenerMisFavoritos()` | `GET /yo` (campo `espaciosFavoritos`) + `GET /espacios` | Sin sesión o con error devuelve `[]` |
 | `alternarFavoritoApi(espacioId, marcar)` | `PUT` / `DELETE /yo/espacios-favoritos/:id` | Lanza `ErrorDeApi` |
+| `obtenerReservasDelDia(fecha)` | `GET /reservas?fecha=&pagina=&porPagina=100` + Bearer | (personal) Recorre las páginas hasta juntar todas; lanza `ErrorDeApi` |
+| `marcarAusenteApi(reservaId)` | `POST /reservas/:id/ausente` + Bearer | (personal) Devuelve la reserva ya `ausente`; lanza `ErrorDeApi` |
+| `obtenerUsuarioApi(usuarioId)` | `GET /usuarios/:id` + Bearer | (personal) Devuelve el usuario con su teléfono; lanza `ErrorDeApi` |
 | `registrarIngresoApi(codigoQr, espacioId)` | `POST /ingresos` + Bearer | Lanza `ErrorDeApi` con el mensaje de la API; devuelve la `Reserva` ya `cumplida` |
 
 Detalles de implementación que conviene saber explicar:
@@ -224,7 +228,11 @@ regular (sirve aunque el id del espacio tenga guiones: `esp-02`) y devuelve
 `{ espacioId, fecha: 'AAAA-MM-DD', hora: 'HH:00', inicio: Date }`, o `null` si el formato no
 es válido. `inicio` se construye con el desfase fijo `-03:00` (Argentina no tiene horario de
 verano), así que no depende de la zona horaria del teléfono. Lo usan "Mis reservas"
-(`formatearTurno`) y el recordatorio local.
+(`formatearTurno`), el recordatorio local y la agenda.
+
+También exporta dos helpers de fechas: `aFechaLocal(Date)` (AAAA-MM-DD con la fecha **local**; no usa
+`toISOString()`, que da la fecha en UTC) y `desplazarDia('AAAA-MM-DD', n)` (suma o resta días, calculando
+a mediodía para evitar saltos por cambios de horario). Los usan la grilla de disponibilidad y la agenda.
 
 ### 3.8 `servicios/archivos.ts`
 
@@ -303,7 +311,7 @@ Puntos para tener claros:
 
 - **`generarProximosDias()`:** arma 7 objetos `{ iso, nombre, numero }` (el primero es "Hoy").
   El `iso` sale de `aFechaLocal()`, que arma `AAAA-MM-DD` con la fecha **local** del teléfono
-  (`getFullYear/getMonth/getDate`). No se usa `toISOString()` porque devuelve la fecha en UTC y
+  (`getFullYear/getMonth/getDate`, helper `aFechaLocal` de `servicios/turnos.ts`). No se usa `toISOString()` porque devuelve la fecha en UTC y
   en Argentina (UTC−3), entre las 21:00 y las 24:00, UTC ya es el día siguiente.
 - **Estado:** `fechaSeleccionada` (por defecto hoy), `turnosReales` (`any[]`), `cargando`.
 - **Carga:** `useFocusEffect` con una bandera `estaActivo` para ignorar respuestas tardías
@@ -433,11 +441,39 @@ Google Maps y en iPhone Apple Maps.
 ### 4.11 `(tabs)/_layout.tsx` — barra de pestañas y menú
 
 - `Tabs` con tres pestañas visibles (Mis Reservas, Canchas, Perfil) y dos ocultas
-  (`href: null`): `escaner` y `mapa`.
+  (`href: null`): `escaner`, `mapa` y `agenda`.
 - Cabecera común: título "Deportes Villaguay", ícono ☰ a la izquierda (abre un `Modal` con la
-  opción "Mapa de Complejos") e ícono QR a la derecha (→ `/escaner`), que **sólo aparece si el
+  opciones "Mapa de Complejos" y, sólo para el personal, "Agenda del día") e ícono QR a la derecha (→ `/escaner`), que **sólo aparece si el
   usuario es encargado o administrador** (`headerRight` es `undefined` para el resto).
 - Los colores de barra y cabecera salen de `paleta`.
+
+### 4.12 Agenda del día — `(tabs)/agenda.tsx` (personal)
+
+Pantalla del encargado y del administrador para ver las reservas de un día y marcar a quien no se
+presentó (PRD §4). Se abre desde el menú ☰ (la opción sólo aparece al personal). Como el escáner,
+muestra "sólo para el personal" a otros roles (`esPersonal`); la API además responde 403.
+
+- **Selector de día:** ‹ y › (con `desplazarDia`); tocar el título vuelve a hoy. La etiqueta dice
+  "Hoy 19/09", "Ayer", "Mañana" o el día de la semana.
+- **Carga (`cargar(dia)`):** `Promise.all` de `obtenerReservasDelDia(dia)` y `obtenerEspacios()`
+  (para mostrar el nombre de la cancha). Descarta las `cancelada`, ordena por hora de inicio y
+  guarda un mapa id → nombre. Un contador `pedidoActual` (`useRef`) descarta las respuestas que
+  llegan tarde si el usuario ya cambió de día. Se recarga al abrir (`useFocusEffect`) y con
+  *pull to refresh*. Los errores se muestran con el mensaje de la API y un botón **Reintentar**.
+- **Resumen:** "N por llegar · N ingresaron · N ausentes".
+- **Tarjeta de reserva:** hora (`19:00 – 20:00`), cancha, cantidad de personas y un chip de estado
+  (Reservada / Ingresó HH:MM / No se presentó).
+- **Contacto:** el botón **Ver contacto** pide `GET /usuarios/:id` y muestra nombre y teléfono con
+  el botón **Llamar** (`tel:`); lo pedido queda guardado en el estado para no repetir el pedido.
+- **No se presentó:** sólo en reservas `confirmada`. Se habilita cuando
+  `inicio + 15 min <= ahora` (regla D10, calculada con `leerTurnoId`); antes está atenuado y dice
+  "Se puede marcar desde las HH:MM". Pide confirmación (`Alert`), llama a `marcarAusenteApi` y
+  reemplaza la reserva en la lista. Si falla (por ejemplo, ya había ingresado), muestra el mensaje
+  de la API y recarga. El servidor vuelve a validar la regla (`ANTES_DE_TIEMPO`), suma 1 a las
+  `ausencias` del jugador y es idempotente.
+
+> La habilitación de la pantalla usa el reloj del teléfono; la API usa el suyo. Si se prueba la
+> API con `RELOJ_FIJO`, los dos relojes pueden no coincidir.
 
 ## 5. Convenciones del código de la app
 

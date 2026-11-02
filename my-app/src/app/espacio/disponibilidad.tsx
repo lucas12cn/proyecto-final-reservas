@@ -4,15 +4,8 @@ import { useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTema } from '../../hooks/use-theme';
+import { aFechaLocal } from '../../servicios/turnos';
 import { obtenerTurnosEspacio } from '../../servicios/reservas';
-
-// AAAA-MM-DD con la fecha LOCAL del teléfono. No usar toISOString(): devuelve la fecha en UTC y
-// en Argentina (UTC-3), de 21:00 a 24:00, UTC ya es el día siguiente (el "Hoy" pediría mañana).
-const aFechaLocal = (fecha: Date) => {
-  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-  const dia = String(fecha.getDate()).padStart(2, '0');
-  return `${fecha.getFullYear()}-${mes}-${dia}`;
-};
 
 const generarProximosDias = () => {
   const dias = [];

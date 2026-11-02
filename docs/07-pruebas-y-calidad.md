@@ -111,6 +111,13 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | T-32 | Recordatorio cancelado | Reservar y cancelar | No llega el recordatorio |
 | T-33 | Catálogo sin conexión | Abrir Canchas con conexión, activar modo avión y reabrir la app | La lista, los filtros y la ficha siguen disponibles |
 | T-34 | Foto y video sin conexión | Abrir una ficha con conexión (esperar unos segundos), modo avión, volver a abrirla | La foto principal y el video ("Guardado offline") se ven |
+| T-37 | Agenda (personal) | Ingresar como `marcelo@villaguay.demo.ar` → menú ☰ → Agenda del día | Lista las reservas de hoy, ordenadas por hora, con cancha y personas |
+| T-38 | Agenda sólo para personal | Ingresar como jugador → menú ☰ | No aparece "Agenda del día" |
+| T-39 | Cambiar de día | Tocar ‹ y › y el título | Cambia el día; el título vuelve a "Hoy" |
+| T-40 | Contacto | "Ver contacto" en una reserva | Muestra nombre y teléfono; "Llamar" abre el marcador del teléfono |
+| T-41 | Ausente antes de tiempo | Reserva cuyo turno empezó hace menos de 15 min | "No se presentó" atenuado y el texto "Se puede marcar desde las HH:MM" |
+| T-42 | Marcar ausente | Reserva `confirmada` cuyo turno empezó hace 15 min o más → "No se presentó" → confirmar | Pasa a "No se presentó" y, en el perfil del jugador, sube **Ausencias** en 1 |
+| T-43 | Reserva que ya ingresó | Escanear su QR y abrir la agenda | Figura "Ingresó HH:MM" y no tiene botón de ausente |
 
 ### 4.3 Casos de notificaciones
 

@@ -148,7 +148,8 @@ my-app/src/
 │   │   ├── espacios.tsx      Catálogo con filtros
 │   │   ├── perfil.tsx        Perfil, tema, salir
 │   │   ├── mapa.tsx          Mapa de complejos (oculta en la barra: se abre desde el menú ☰)
-│   │   └── escaner.tsx       Escáner QR (oculta en la barra: se abre con el ícono QR de la cabecera)
+│   │   ├── escaner.tsx       Escáner QR (oculta en la barra: se abre con el ícono QR de la cabecera)
+│   │   └── agenda.tsx        Agenda del día y ausentes (oculta; menú ☰, sólo personal)
 │   └── espacio/              Flujo de reserva (fuera de las pestañas)
 │       ├── [id].tsx          Ficha del espacio
 │       ├── disponibilidad.tsx  Grilla de turnos
@@ -162,7 +163,7 @@ my-app/src/
 │   ├── auth.ts               /auth/*, /yo, /dispositivos
 │   ├── reservas.ts           /espacios, /deportes, /reservas, /ingresos, favoritos
 │   ├── notificaciones.ts     Permiso, token de Expo, alta/baja, recordatorio local de 2 h
-│   ├── turnos.ts             Desarma el id de turno (tur-esp-02-AAAAMMDD-HH)
+│   ├── turnos.ts             Id de turno (tur-esp-02-AAAAMMDD-HH) y fechas locales
 │   ├── archivos.ts           Copia local de fotos/videos (expo-file-system nuevo)
 │   └── db.ts                 SQLite: catálogo de espacios y deportes (respaldo sin conexión)
 ├── tipos/index.ts            Tipos del PRD (copia literal)

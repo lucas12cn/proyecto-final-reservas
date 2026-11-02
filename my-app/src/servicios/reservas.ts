@@ -1,6 +1,6 @@
 import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';
-import { Espacio, Deporte, Reserva, Turno } from '../tipos';
+import { Espacio, Deporte, Reserva, Turno, Usuario } from '../tipos';
 import { API_URL } from './config';
 import { errorSinSesion, lanzarSiError } from './errores';
 import {
@@ -205,6 +205,67 @@ export const registrarIngresoApi = async (codigoQr: string, espacioId: string): 
   });
 
   await lanzarSiError(respuesta, 'No se pudo registrar el ingreso');
+
+  const json = await respuesta.json();
+  return json.datos;
+};
+
+// ---------------------------------------------------------------------------------------------
+// Servicios del personal (encargado / administrador). La API responde 403 SIN_PERMISO a un
+// jugador, así que las pantallas que los usan ya están limitadas por rol.
+// ---------------------------------------------------------------------------------------------
+
+/** Todas las reservas de un día (AAAA-MM-DD), de todos los espacios. Pide las páginas que hagan falta. */
+export const obtenerReservasDelDia = async (fecha: string): Promise<Reserva[]> => {
+  await verificarConexion();
+  const token = await tokenObligatorio();
+
+  const reservas: Reserva[] = [];
+  let pagina = 1;
+  while (true) {
+    const respuesta = await fetch(`${API_URL}/reservas?fecha=${fecha}&pagina=${pagina}&porPagina=100`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    await lanzarSiError(respuesta, 'No se pudo cargar la agenda');
+
+    const json = await respuesta.json();
+    reservas.push(...json.datos);
+
+    const total: number = json.meta?.total ?? reservas.length;
+    if (json.datos.length === 0 || reservas.length >= total) break;
+    pagina++;
+  }
+  return reservas;
+};
+
+/** Marca "no se presentó" (desde 15 minutos después del inicio del turno). Devuelve la reserva. */
+export const marcarAusenteApi = async (reservaId: string): Promise<Reserva> => {
+  await verificarConexion();
+  const token = await tokenObligatorio();
+
+  const respuesta = await fetch(`${API_URL}/reservas/${reservaId}/ausente`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({})
+  });
+  await lanzarSiError(respuesta, 'No se pudo marcar la ausencia');
+
+  const json = await respuesta.json();
+  return json.datos;
+};
+
+/** Datos de un usuario, con su teléfono (para llamar a quien no se presentó). */
+export const obtenerUsuarioApi = async (usuarioId: string): Promise<Usuario> => {
+  await verificarConexion();
+  const token = await tokenObligatorio();
+
+  const respuesta = await fetch(`${API_URL}/usuarios/${usuarioId}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  await lanzarSiError(respuesta, 'No se pudo cargar el contacto');
 
   const json = await respuesta.json();
   return json.datos;

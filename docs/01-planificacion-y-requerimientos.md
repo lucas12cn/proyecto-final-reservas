@@ -87,13 +87,13 @@ y las diferencias están en [08](08-estado-actual-y-deuda-tecnica.md).
 | RF-14 | Mostrar el QR de la reserva | PRD §4 | ✅ `react-native-qrcode-svg` |
 | RF-15 | Encargado escanea el QR y se registra el ingreso | PRD §4 | ✅ `POST /ingresos`; el escáner es sólo para personal |
 | RF-16 | Mensajes claros si el código no corresponde | PRD §4 | ✅ se muestra el mensaje de la API |
-| RF-17 | Marcar "no se presentó" | PRD §4 | ❌ no implementado en la app |
+| RF-17 | Marcar "no se presentó" | PRD §4 | ✅ pantalla **Agenda del día** (personal): desde 15 min después del inicio |
 | RF-18 | Recordatorio 2 h antes | PRD §5 | ✅ notificación **local** programada al reservar (a confirmar en un teléfono) |
 | RF-19 | Aviso por suspensión (bloqueo) | PRD §5 | ✅ push del servidor |
 | RF-20 | Aviso por turno liberado en favorito | PRD §5 | ✅ push del servidor |
 | RF-21 | Marcar espacios favoritos | PRD §5 | ✅ corazón en la ficha |
 | RF-22 | Registro, ingreso y perfil | PRD (cuenta) | ✅ `login`, `registro`, `perfil` |
-| RF-23 | Bloquear turnos/días, fijas, agenda, precio (personal) | PRD §6 | ❌ no hay pantallas (la API sí lo soporta) |
+| RF-23 | Bloquear turnos/días, fijas, agenda, precio (personal) | PRD §6 | ⚠️ sólo la **agenda del día** (con contacto y ausentes); faltan bloqueos, reservas fijas y precio (la API los soporta) |
 | RF-24 | Subir fotos del estado de una cancha | PRD (capacidades) | ⚠️ se guarda **sólo en el teléfono** |
 
 ## 4. Requisitos no funcionales

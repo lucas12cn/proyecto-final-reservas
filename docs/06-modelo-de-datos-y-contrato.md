@@ -196,11 +196,11 @@ Tipos que agrega la API (`contract/api.ts`): `Meta`, `RespuestaLista<T>`, `Respu
 | POST | `/reservas` | 🔒 jugador | ✅ | `{ turnoId, cantidadPersonas }` → 201 (o 200 si ya la tenía) |
 | GET | `/reservas/:id` | 🔒 | — | Una reserva (dueño o personal) |
 | POST | `/reservas/:id/cancelacion` | 🔒 | ✅ | Cancela (hasta `cancelableHasta`) |
-| GET | `/reservas` | 🧑‍🔧 | — | Reservas de todos (`fecha`, `espacioId`, `estado`) |
+| GET | `/reservas` | 🧑‍🔧 | ✅ | Reservas de todos (`fecha`, `espacioId`, `estado`); la agenda pide por día y recorre las páginas |
 | POST | `/ingresos` | 🧑‍🔧 | ✅ | `{ codigoQr, espacioId }` → reserva `cumplida` |
-| POST | `/reservas/:id/ausente` | 🧑‍🔧 | — | "No se presentó" |
+| POST | `/reservas/:id/ausente` | 🧑‍🔧 | ✅ | "No se presentó" |
 | GET | `/agenda` | 🧑‍🔧 | — | Turnos de todos los espacios en un día |
-| GET | `/usuarios/:id` | 🧑‍🔧 | — | Usuario con teléfono |
+| GET | `/usuarios/:id` | 🧑‍🔧 | ✅ | Usuario con teléfono (botón "Ver contacto" de la agenda) |
 | POST / GET / DELETE | `/bloqueos` | 🧑‍🔧 | — | Bloquear, listar, quitar |
 | GET | `/fijas` | 🧑‍🔧 | — | Reservas fijas |
 | POST / PATCH / DELETE | `/fijas` · `/fijas/:id` | 🛡 | — | Alta, edición, baja de fijas |

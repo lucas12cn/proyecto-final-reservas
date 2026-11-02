@@ -80,12 +80,12 @@ la API imprime la lista de problemas y termina (no arranca a medias).
 | `DB_ARCHIVO` / `DB_URL` | `datos/api.sqlite` | Archivo SQLite o cadena de conexión |
 | `DB_PROVEEDOR` | — | Preset de nube: `supabase`, `neon`, `aiven-postgres`, `aiven-mysql` |
 | `DB_SINCRONIZAR` | `true` | Crea/ajusta las tablas desde las entidades |
-| `SEMBRAR_SI_VACIA` | `true` | Carga los datos de demo si la base está vacía |
-| `JWT_SECRETO` | clave de desarrollo | Firma de los tokens |
+| `SEMBRAR_SI_VACIA` | `false` | Carga los datos de demo si la base está vacía. El `.env.example` la pone en `true`: por eso hay que copiarlo a `.env` |
+| `JWT_SECRETO` | **obligatoria** | Firma de los tokens. Sin ella la API no arranca ("Falta JWT_SECRETO"); en desarrollo se usa la del `.env.example`. En `publicado` debe tener 32 caracteres o más |
 | `ARCHIVOS_PROVEEDOR` | `local` | `aws` · `supabase` · `r2` · `b2` · `s3proxy` · `localstack` |
 | `NOTIFICACIONES` | `registro` | `registro` (sólo escribe en consola) · `expo` (envía de verdad) |
 | `EXPO_PUSH_URL` | `https://exp.host/--/api/v2/push/send` | Endpoint de push de Expo |
-| `SIMULACION_HABILITADA` | `true` | Habilita `X-Simular` |
+| `SIMULACION_HABILITADA` | `true` sólo en `desarrollo` | Habilita `X-Simular` |
 | `RELOJ_FIJO` | vacío | Congela la hora: `2026-09-19T20:30:00-03:00` |
 
 ## 4. Base de datos

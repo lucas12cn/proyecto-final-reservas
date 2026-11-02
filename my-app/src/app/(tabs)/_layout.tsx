@@ -52,6 +52,7 @@ export default function TabsLayout() {
         {/* PESTAÑAS OCULTAS (Vuelven las del mapa y estado para que no se rompan los botones de arriba) */}
         <Tabs.Screen name="escaner" options={{ href: null }} />
         <Tabs.Screen name="mapa" options={{ href: null }} />
+        <Tabs.Screen name="agenda" options={{ href: null, headerTitle: 'Agenda del día' }} />
       </Tabs>
 
       {/* MENÚ DESPLEGABLE */}
@@ -67,6 +68,17 @@ export default function TabsLayout() {
               <Ionicons name="map-outline" size={22} color={paleta.text} />
               <Text style={[estilos.textoOpcion, { color: paleta.text }]}>Mapa de Complejos</Text>
             </TouchableOpacity>
+
+            {/* Sólo personal: agenda del día y ausentes */}
+            {esPersonal && (
+              <TouchableOpacity
+                style={[estilos.opcionMenu, { borderBottomColor: paleta.border, borderBottomWidth: 0 }]}
+                onPress={() => irA('/agenda')}
+              >
+                <Ionicons name="list-outline" size={22} color={paleta.text} />
+                <Text style={[estilos.textoOpcion, { color: paleta.text }]}>Agenda del día</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </Pressable>
       </Modal>

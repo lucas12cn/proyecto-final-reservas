@@ -108,7 +108,7 @@ Todos con contraseña **`villaguay2026`** (todo en minúscula).
 | `emiliano@mail.com` | jugador | El usuario del PRD, con historial y una cancelación tardía |
 | `lleno@demo.ar` | jugador | Tiene 3 reservas activas: la cuarta devuelve `LIMITE_DE_RESERVAS` |
 | `nuevo@demo.ar` | jugador | Cuenta vacía |
-| `marcelo@villaguay.demo.ar` | encargado | Agenda, ingresos, bloqueos |
+| `marcelo@villaguay.demo.ar` | encargado | Escáner de ingresos y **Agenda del día** (menú ☰: ver reservas, contacto y marcar ausentes) |
 | `nahuel@villaguay.demo.ar` | administrador | Todo, más reservas fijas y precios |
 
 > Los campos de ingreso de la app arrancan vacíos: escribí el email y la contraseña.
@@ -252,6 +252,7 @@ siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
 | `El email o la contraseña no son correctos.` con `emiliano@mail.com` | La contraseña correcta es `villaguay2026` (todo en minúscula) |
 | `NO_AUTENTICADO` después de `pnpm db:reiniciar` | El usuario se borró y se recreó: cerrar sesión e ingresar de nuevo |
 | `EADDRINUSE :::3000` | Ya hay una API corriendo en el puerto 3000 |
+| La API no arranca: `Falta JWT_SECRETO` | No hay archivo `.env`: copiá `.env.example` a `.env` (también activa `SEMBRAR_SI_VACIA`, que carga los datos de demo) |
 | `Could not locate the bindings file` (better-sqlite3) | Repetir `pnpm install` con Node 24, o usar Docker |
 | No llegan las push | `NOTIFICACIONES=expo`, teléfono real, permiso concedido y, en Android, development build |
 | El mapa no se dibuja | En Expo Go: revisá la conexión y el permiso de ubicación. En un **build de Android**: falta la clave `GOOGLE_MAPS_API_KEY` (ver §5.4) |

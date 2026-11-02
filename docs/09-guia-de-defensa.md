@@ -69,7 +69,7 @@ Preparación: API con datos de demo (`pnpm db:reiniciar`), `NOTIFICACIONES=expo`
    reservado." con el botón *Ver otros turnos*.
 6. **Notificación:** con Swagger, loguearse como encargado y `POST /bloqueos` sobre un turno
    reservado por el teléfono → llega "Reserva cancelada" → tocar → abre Mis Reservas.
-7. **Escáner:** ingresar como encargado (`marcelo@villaguay.demo.ar`), abrir el escáner (ícono
+7. **Escáner y agenda:** ingresar como encargado (`marcelo@villaguay.demo.ar`), abrir el escáner (ícono
    QR, huella) y escanear el QR de la reserva del otro teléfono → "¡Ingreso autorizado!".
    Escanearlo de nuevo → "Ingreso rechazado" (ya ingresó).
 
@@ -89,8 +89,8 @@ privadas y alquiler de elementos: el PRD los excluye de la primera versión. La 
 precio pero no cobra.
 
 **¿Qué requisitos del PRD no pudieron cumplir?** Hay que responder con la tabla de
-[08 §3](08-estado-actual-y-deuda-tecnica.md): marcar ausentes, pantallas del personal
-(bloqueos, fijas, agenda, precio) y el build de producción con EAS. Y explicar cómo se cerrarían.
+[08 §3](08-estado-actual-y-deuda-tecnica.md): las pantallas del personal para bloqueos,
+reservas fijas y precio (la API ya los soporta) y el build de producción con EAS. Y explicar cómo se cerrarían.
 
 **¿Cómo se organizó el trabajo?** (Completar con el reparto real.) La secuencia técnica fue:
 base y navegación → catálogo → disponibilidad y reserva → sesión → Mis reservas y offline →
@@ -191,6 +191,16 @@ remotas; se necesita un development build. En iPhone sí.
 app la programa en el teléfono con `scheduleNotificationAsync` (disparador por fecha = inicio −
 2 h, identificador `recordatorio-<reservaId>`). No necesita servidor ni señal. Se cancela al
 cancelar la reserva o cerrar sesión y se reconcilia cada vez que se cargan "Mis reservas".
+
+**¿Qué puede hacer el personal en la app?** Escanear el QR para registrar el ingreso, y en la
+**Agenda del día** ver las reservas de cada día, ver el contacto del jugador y marcar "no se
+presentó" (desde 15 minutos después del inicio). Los bloqueos, las reservas fijas y el precio
+están en la API pero todavía no tienen pantalla.
+
+**¿Cómo funciona el marcado de ausentes?** `POST /reservas/:id/ausente`: sólo para una reserva
+`confirmada` y desde 15 minutos después del inicio; queda `ausente`, suma 1 a las `ausencias` del
+jugador (el contador del perfil) y repetirlo no cambia nada. La app deshabilita el botón antes de
+tiempo, pero la regla la valida el servidor.
 
 ### Entrega
 

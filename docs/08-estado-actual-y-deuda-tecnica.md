@@ -179,9 +179,9 @@ setVideoCache(destino.uri);
 | ID | Requisito (PRD) | Estado | Esfuerzo |
 |---|---|---|---|
 | G-01 | Registro real del ingreso con QR (§4) | ✅ Resuelto (llama a `POST /ingresos`) | — |
-| G-02 | Marcar "no se presentó" (§4) | Sin pantalla; la API lo tiene (`POST /reservas/:id/ausente`) | M |
+| G-02 | Marcar "no se presentó" (§4) | ✅ Resuelto: pantalla **Agenda del día** (`agenda.tsx`) | — |
 | G-03 | **Recordatorio 2 h antes** (§5) | ✅ Resuelto (notificación local; a confirmar en un teléfono) | — |
-| G-04 | Pantallas del personal (§6): bloqueos, fijas, agenda, precio | No hay | L |
+| G-04 | Pantallas del personal (§6): bloqueos, fijas, agenda, precio | ⚠️ Parcial: hay **agenda del día** (con contacto y ausentes). Faltan bloqueos, reservas fijas y precio | L |
 | G-05 | Distinguir roles en la interfaz (D6) | ⚠️ Parcial: el escáner es sólo para personal; faltan las demás pantallas del personal (G-04) | M |
 | G-06 | Guardar fotos/video para verlos sin datos (§capacidades) | ✅ Resuelto (B-04) | — |
 | G-07 | `expo-sensors` y `kv-store` | Instalados, sin uso real | S |
@@ -235,7 +235,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 
 ## 5. Plan de cierre recomendado (orden sugerido)
 
-**Avance:** las prioridades **1 a 11 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). Queda la 12 (ausentes y pantallas del personal) y los pendientes menores: D-03, D-04, D-05, D-07, D-12, D-13, D-14, D-17 y D-18.
+**Avance:** las prioridades **1 a 11 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). De la 12 está hecha la agenda con ausentes; quedan las pantallas de bloqueos, reservas fijas y precio (G-04) y los pendientes menores: D-03, D-04, D-05, D-07, D-12, D-13, D-14, D-17 y D-18.
 
 | Prioridad | Tarea | Resuelve |
 |---|---|---|
@@ -250,6 +250,6 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | 9 ✅ | `config.ts` único para la URL de la API | D-01 |
 | 10 ✅ | `eas.json`, nombre e identificador definitivos, permisos para iOS (el build en sí necesita las cuentas: ver README §5) | G-09 |
 | 11 ✅ | Limpieza (código muerto, dependencias, `tsc` limpio) | D-08…D-11 |
-| 12 | Pantalla de ausentes y, si da el tiempo, pantallas de personal | G-02, G-04 |
+| 12 ⚠️ | Pantalla de ausentes (hecha: **Agenda del día**) y, si da el tiempo, pantallas de personal (bloqueos, fijas, precio) | G-02 ✅, G-04 parcial |
 
 > Si el tiempo es poco: las prioridades **1 a 4** son las que más se notan en una demostración.
