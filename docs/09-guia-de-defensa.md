@@ -149,9 +149,14 @@ espacios en SQLite (`cache_reservas`, clave = filtro). Sin red (`Network.getNetw
 se leen de ahí y se muestra el cartel. El QR se dibuja de `codigoQr`, que va incluido en la
 reserva.
 
-**¿Por qué Leaflet en un WebView y no `react-native-maps`?** No requiere claves de Google ni
-build nativo propio en Expo Go. A cambio, necesita internet. (`react-native-maps` quedó
-instalado.)
+**¿Por qué `react-native-maps` y no un mapa web?** El PRD lo indica para "complejos en el mapa y
+cómo llegar", y es un mapa nativo: más fluido, sin cargar scripts de un CDN y con el punto de
+ubicación del sistema. Usa Google Maps en Android y Apple Maps en iPhone. El costo es que los
+builds de Android necesitan una clave de Google Maps (`GOOGLE_MAPS_API_KEY`); en Expo Go no hace
+falta.
+
+**¿Qué muestra el mapa?** Un marcador por complejo; al tocarlo, una tarjeta con sus canchas, la
+distancia (si hay ubicación) y el botón "Cómo llegar". El más cercano al usuario va en verde.
 
 **¿Qué pasa si niegan el permiso de ubicación/cámara?** Ubicación: el mapa funciona igual sin el
 punto azul. Cámara: una pantalla explica y ofrece reintentar. Notificaciones: no se registra el
@@ -245,7 +250,7 @@ mindmap
       Servicios
       SQLite offline
       Cámara QR + huella
-      Mapa Leaflet
+      Mapa react-native-maps
     API (cátedra)
       NestJS + TypeORM
       Grilla calculada

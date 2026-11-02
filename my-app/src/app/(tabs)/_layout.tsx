@@ -51,7 +51,6 @@ export default function TabsLayout() {
         
         {/* PESTAÑAS OCULTAS (Vuelven las del mapa y estado para que no se rompan los botones de arriba) */}
         <Tabs.Screen name="escaner" options={{ href: null }} />
-        <Tabs.Screen name="estado-cancha" options={{ href: null }} />
         <Tabs.Screen name="mapa" options={{ href: null }} />
       </Tabs>
 

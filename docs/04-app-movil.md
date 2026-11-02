@@ -46,7 +46,6 @@ flowchart TB
 | `/(tabs)/perfil` | `app/(tabs)/perfil.tsx` | Pestaña 3 | Barra inferior |
 | `/mapa` | `app/(tabs)/mapa.tsx` | Pestaña **oculta** (`href: null`) | Menú ☰ de la cabecera |
 | `/escaner` | `app/(tabs)/escaner.tsx` | Pestaña **oculta** | Ícono QR de la cabecera (sólo se muestra a encargados y administradores) |
-| `/estado-cancha` | `app/(tabs)/estado-cancha.tsx` | Pestaña **oculta** | **Ningún enlace** (pantalla huérfana) |
 | `/espacio/[id]` | `app/espacio/[id].tsx` | Stack | Tarjeta del catálogo; toque de un aviso "Se liberó un turno" |
 | `/espacio/disponibilidad` | `app/espacio/disponibilidad.tsx` | Stack | Botón "Ver disponibilidad" de la ficha |
 | `/espacio/confirmar` | `app/espacio/confirmar.tsx` | Stack | Toque de un turno libre |
@@ -117,7 +116,6 @@ Funcionamiento:
   pintan con `paleta.*` en línea (`style={[estilos.x, { color: paleta.text }]}`).
 - **No persiste** la elección: al cerrar la app vuelve a `'sistema'`.
 - `ThemeContext` está tipado `any` (sin tipo estricto).
-- `theme/colors.ts` define otra paleta (`darkColors`/`lightColors`) que **no se usa**.
 
 ## 3. Capa de servicios
 
@@ -393,19 +391,32 @@ Pantalla clave del requisito offline.
 
 ### 4.9 Mapa — `(tabs)/mapa.tsx`
 
-- Agrupa los espacios por `complejo` usando las `coordenadas` del primer espacio de cada
-  complejo (`Record<string, Complejo>`), con la lista de canchas.
-- **`armarHtml(complejos, usuario)`** genera una página HTML con **Leaflet 1.9.4** (desde
-  `unpkg.com`) y mosaicos de **OpenStreetMap**; se muestra en un `WebView`. Cada complejo es un
-  marcador con popup ("N canchas disponibles"); si hay ubicación, un círculo azul marca al
-  usuario. `fitBounds` ajusta el encuadre. Los datos se inyectan con `JSON.stringify` y se
-  escapa `<` (`\u003c`) para evitar inyección en el HTML.
-- **Ubicación:** `Location.requestForegroundPermissionsAsync()` → `getCurrentPositionAsync`.
-  Si se niega, el mapa funciona igual (requisito del PRD). `useMemo` recalcula el HTML sólo
-  cuando cambian complejos o ubicación.
-- Centro por defecto: Villaguay (`-31.8644, -59.0272`).
-- **Requiere internet** (Leaflet y mosaicos). El PRD pedía `react-native-maps`; está instalado
-  pero no se usa.
+Mapa **nativo** con `react-native-maps` (`MapView` + `Marker`), sin `WebView`: en Android usa
+Google Maps y en iPhone Apple Maps.
+
+- **Datos:** `cargarDatos()` agrupa los espacios por `complejo`, tomando las `coordenadas` del
+  primer espacio de cada uno (`Record<string, Complejo>` con `latitud`, `longitud` y la lista de
+  `canchas`). Sólo cuenta los espacios que tienen coordenadas.
+- **Vista inicial:** `REGION_VILLAGUAY`. Cuando el mapa avisa que está listo (`onMapReady`) y hay
+  complejos, un `useEffect` los encuadra a todos con `fitToCoordinates` (con un solo complejo usa
+  `animateToRegion`).
+- **Marcadores:** un `Marker` por complejo. Al tocarlo se abre una **tarjeta** inferior con el
+  nombre, la cantidad de canchas, sus nombres y el botón **Cómo llegar**, que abre Google Maps
+  con la ruta hasta las coordenadas (`https://www.google.com/maps/dir/?api=1&destination=lat,lng`).
+  La tarjeta se cierra con la ✕.
+- **Ubicación:** `Location.requestForegroundPermissionsAsync()` → `getCurrentPositionAsync`. Si se
+  concede, `showsUserLocation` dibuja el punto del usuario, la tarjeta muestra la distancia
+  (fórmula de Haversine en `distanciaEnKm`) y el marcador del **complejo más cercano** va en verde
+  (`masCercanoId`, con `useMemo`): cumple el "saber qué complejo tiene más cerca" del PRD. Si se
+  niega el permiso, el mapa funciona igual sin esos datos (requisito del PRD).
+- **Tema:** `userInterfaceStyle` sigue el modo claro/oscuro (lo aplica iOS; en Android el mapa
+  de Google queda con su estilo claro).
+- **Sin datos:** si no hay complejos (sin conexión y sin catálogo guardado) muestra un aviso.
+- **Configuración nativa:** en Android los builds necesitan una clave de Google Maps
+  (`GOOGLE_MAPS_API_KEY`, que `app.config.js` agrega al manifiesto; ver el
+  [README §5.4](../README.md)); en Expo Go y en iPhone no.
+- **Sin conexión:** la lista de complejos sale del catálogo guardado (§3.2), pero los mosaicos del
+  mapa se descargan de Google/Apple: sin red el fondo del mapa puede no verse completo.
 
 ### 4.10 Perfil — `(tabs)/perfil.tsx`
 
@@ -421,17 +432,12 @@ Pantalla clave del requisito offline.
 
 ### 4.11 `(tabs)/_layout.tsx` — barra de pestañas y menú
 
-- `Tabs` con tres pestañas visibles (Mis Reservas, Canchas, Perfil) y tres ocultas
-  (`href: null`): `escaner`, `estado-cancha`, `mapa`.
+- `Tabs` con tres pestañas visibles (Mis Reservas, Canchas, Perfil) y dos ocultas
+  (`href: null`): `escaner` y `mapa`.
 - Cabecera común: título "Deportes Villaguay", ícono ☰ a la izquierda (abre un `Modal` con la
   opción "Mapa de Complejos") e ícono QR a la derecha (→ `/escaner`), que **sólo aparece si el
   usuario es encargado o administrador** (`headerRight` es `undefined` para el resto).
 - Los colores de barra y cabecera salen de `paleta`.
-
-### 4.12 `(tabs)/estado-cancha.tsx`
-
-Selector de foto con `expo-image-picker` (sólo imágenes, aspecto 4:3, calidad 0,5) y un botón
-"Subir" que **sólo muestra un `Alert`** (`// Acá iría el POST…`). Sin enlace desde ninguna pantalla.
 
 ## 5. Convenciones del código de la app
 
@@ -452,15 +458,31 @@ Selector de foto con `expo-image-picker` (sólo imágenes, aspecto 4:3, calidad 
 |---|---|---|---|
 | Cámara | Cámara | Al abrir el escáner | Pantalla explicativa con botón de reintento |
 | Galería | Biblioteca de medios | Al tocar "Reportar" / "Abrir galería" | `Alert` "Permiso denegado" |
-| Ubicación | Ubicación en primer plano | Al abrir el mapa | El mapa funciona igual, sin el punto del usuario |
+| Ubicación | Ubicación en primer plano | Al abrir el mapa | El mapa funciona igual, sin el punto del usuario ni las distancias |
 | Notificaciones | Notificaciones | Al registrar el teléfono tras ingresar | No se registra el token; la app sigue funcionando |
 | Biometría | (sistema) | Al abrir con sesión guardada y en el escáner | Entrada denegada / reintentar |
 
-## 7. Archivos que **no** forman parte de la app (ruido en el repo)
+## 7. Limpieza del repositorio
 
-| Archivo | Qué es |
+Se eliminó lo que no era parte de la app y hacía ruido (o impedía que `npx tsc --noEmit`
+terminara sin errores):
+
+| Qué se eliminó | Por qué |
 |---|---|
-| `app/layout.txt`, `app/(tabs)/mapa.txt`, `app/(tabs)/reservas.txt`, `servicios/notificaciones.txt` | Copias de respaldo de versiones anteriores |
-| `components/*`, `constants/theme.ts`, `hooks/use-color-scheme*.ts`, `global.css`, `scripts/reset-project.js`, `assets/images/*` | Plantilla de Expo (`create-expo-app`); no se usan. Varios **no compilan** (`useTheme` inexistente, `global.css`, `.module.css`) |
-| `hooks/useLogin.ts` | Hook de login con una URL `TU_IP_LOCAL`; reemplazado por `AuthContext` |
-| `mocks/datos.ts` | Datos falsos del PRD; ya no se importan |
+| `app/layout.txt`, `app/(tabs)/mapa.txt`, `app/(tabs)/reservas.txt`, `servicios/notificaciones.txt` | Copias de respaldo de versiones anteriores (están en el historial de git) |
+| `src/components/*`, `src/constants/`, `src/global.css`, `src/hooks/use-color-scheme*.ts`, `src/theme/`, `scripts/reset-project.js` y el script `reset-project` | Plantilla de `create-expo-app` sin uso; varios archivos **no compilaban** (`useTheme` inexistente, `global.css`, `.module.css`) |
+| `src/hooks/useLogin.ts` | Hook de login con una URL `TU_IP_LOCAL`; lo reemplazó `AuthContext` |
+| `src/app/(tabs)/estado-cancha.tsx` y su entrada en las pestañas | Pantalla huérfana: el selector de foto era un `Alert` sin función (el reporte real está en la ficha) |
+| Imágenes de la plantilla (`react-logo*`, `expo-badge*`, `expo-logo`, `logo-glow`, `tutorial-web`, `tabIcons/`) | Sin referencias |
+| `package.json` y `package-lock.json` de la **raíz** del repo | Sobrantes de un `npm install` hecho en la carpeta equivocada (sólo traían `axios`, `zod` y `react-hook-form`) |
+| Dependencias de `my-app`: `axios`, `zod`, `react-hook-form`, `@hookform/resolvers`, `@expo/ui`, `expo-glass-effect`, `expo-status-bar`, `expo-symbols` | Ninguna se importaba |
+
+Se conservan a propósito:
+
+| Archivo / dependencia | Motivo |
+|---|---|
+| `src/mocks/datos.ts` | Es la evidencia de la fase de datos simulados que pide el PRD; ya no se importa |
+| `expo-sensors` | El PRD lo lista entre las capacidades (háptica y sensores); no se usa todavía (G-07) |
+| `expo-dev-client` | Lo necesita el perfil `development` de EAS |
+| `expo-system-ui`, `expo-font`, `expo-image`, `expo-web-browser`, `expo-splash-screen`, `react-native-worklets` | Dependencias por defecto de Expo (algunas con plugin en `app.json`); `depcheck` las marca sin uso pero quitarlas no aporta |
+| `servicios/db.ts` (funciones de `reservas_locales` y la preferencia de complejo) | Existen pero ninguna pantalla las usa; "Mis reservas" tiene su propia base |

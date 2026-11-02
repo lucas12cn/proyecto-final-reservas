@@ -25,12 +25,12 @@ flowchart LR
   end
 
   EXPO["Servicio de push de Expo<br/>exp.host"]
-  OSM["OpenStreetMap + unpkg<br/>(mapa Leaflet)"]
+  MAPAS["Google Maps (Android)<br/>Apple Maps (iPhone)"]
 
   APP -- "HTTP JSON · Bearer token" --> API
   API -- "POST /--/api/v2/push/send" --> EXPO
   EXPO -- "FCM / APNs" --> APP
-  APP -- "WebView" --> OSM
+  APP -- "SDK nativo del mapa" --> MAPAS
 ```
 
 ## 2. Stack tecnológico
@@ -46,14 +46,14 @@ flowchart LR
 | Compilador | React Compiler | `experiments.reactCompiler` | Memoización automática |
 | UI | `StyleSheet` + `@react-native-vector-icons/ionicons` | — | Pedido por el PRD (los íconos ya no vienen de `@expo/vector-icons`) |
 | QR | `react-native-qrcode-svg` | 6.x | Dibuja el código de la reserva |
-| Mapa | `react-native-webview` + Leaflet (CDN) | 13.x / 1.9.4 | No requiere clave de Google Maps |
+| Mapa | `react-native-maps` | 1.27.x | Lo pide el PRD; mapa nativo (Google Maps en Android, Apple Maps en iPhone). En builds de Android requiere clave de Google Maps |
 | Datos locales | `expo-sqlite` | ~57 | Caché de reservas/galería para uso sin señal |
 | Seguridad | `expo-secure-store`, `expo-local-authentication` | ~57 | Token en almacenamiento seguro; huella/PIN |
 | Avisos | `expo-notifications`, `expo-device`, `expo-constants` | ~57 | Token de Expo y recepción de push |
 
-Dependencias instaladas **sin uso en el código** (candidatas a quitar o a usar): `axios`, `zod`,
-`react-hook-form`, `@hookform/resolvers`, `react-native-maps`, `expo-sensors`,
-`expo-file-system` (se usa, pero mal; ver [08](08-estado-actual-y-deuda-tecnica.md)).
+Dependencias **sin uso real** que se conservan a propósito: `expo-sensors` (el PRD lo lista; ver
+[08](08-estado-actual-y-deuda-tecnica.md) G-07) y las que Expo agrega por defecto. Las demás
+(`axios`, `zod`, `react-hook-form`…) se quitaron: ver [04 §7](04-app-movil.md).
 
 ### 2.2 API (`api-reservas-deportivas/`)
 
@@ -148,8 +148,7 @@ my-app/src/
 │   │   ├── espacios.tsx      Catálogo con filtros
 │   │   ├── perfil.tsx        Perfil, tema, salir
 │   │   ├── mapa.tsx          Mapa de complejos (oculta en la barra: se abre desde el menú ☰)
-│   │   ├── escaner.tsx       Escáner QR (oculta en la barra: se abre con el ícono QR de la cabecera)
-│   │   └── estado-cancha.tsx Reporte de foto (oculta; ningún botón lleva a ella)
+│   │   └── escaner.tsx       Escáner QR (oculta en la barra: se abre con el ícono QR de la cabecera)
 │   └── espacio/              Flujo de reserva (fuera de las pestañas)
 │       ├── [id].tsx          Ficha del espacio
 │       ├── disponibilidad.tsx  Grilla de turnos
@@ -170,10 +169,8 @@ my-app/src/
 └── mocks/datos.ts            Datos falsos del PRD (sin uso actual)
 ```
 
-Archivos `.txt` en `app/` y `servicios/` (`layout.txt`, `reservas.txt`, `mapa.txt`,
-`notificaciones.txt`) son **copias de respaldo de versiones anteriores**; no forman parte de la
-app. Los componentes de `src/components/` y `src/constants/` son **remanentes de la plantilla de
-Expo** y no se usan.
+La plantilla de Expo (`src/components/`, `src/constants/`, imágenes de ejemplo), las copias de
+respaldo `.txt` y otros archivos sin uso se eliminaron: ver [04 §7](04-app-movil.md).
 
 ### 4.2 Capas
 
@@ -354,7 +351,7 @@ con `env.EXPO_PUBLIC_API_URL` de cada perfil (el `.env.local` no viaja a EAS) y 
 | Doble reserva evitada con **índice único** (`ocupacion`, `NULL` si está cancelada) | Chequear antes de insertar | Un chequeo previo falla con pedidos simultáneos; la base es la única fuente confiable |
 | `POST /reservas` **idempotente** | 409 al reintentar | Con mala señal el cliente reintenta; devolver la misma reserva evita errores falsos |
 | Caché offline como **JSON en SQLite** (clave = filtro) | Tablas normalizadas; `AsyncStorage` | Simple y suficiente para "ver mi reserva y mi QR sin señal"; el PRD pide SQLite |
-| Mapa con **Leaflet en un WebView** | `react-native-maps` | No requiere claves de Google ni build nativo propio en Expo Go; cuesta: necesita internet |
+| Mapa **nativo** con `react-native-maps` | Leaflet en un `WebView` | El PRD lo pide; el mapa es fluido y no carga scripts de un CDN externo. Costo: en Android hay que crear una clave de Google Maps para los builds (en Expo Go no) |
 | Sesión en **Context** | Redux/Zustand | Estado chico (usuario + token); alcanza con Context |
 | Push enviadas **sin bloquear** la respuesta | Enviar y esperar | Un fallo de Expo no debe romper "bloquear turnos" ni "cancelar" |
 | Estilos con `StyleSheet` + paleta en Context | Unistyles / NativeWind | Cumple el PRD sin dependencias extra |

@@ -187,7 +187,24 @@ Además del `NOTIFICACIONES=expo` de la API, cada plataforma necesita credencial
 
 La clave de cuenta de servicio es secreta: **no se commitea**.
 
-### 5.4 Identidad de la app
+### 5.4 Mapa: clave de Google Maps (sólo Android)
+
+El mapa usa `react-native-maps`: en Android dibuja **Google Maps** y en iPhone **Apple Maps** (sin
+clave). En Expo Go no hace falta configurar nada. En un **build de Android** hace falta una clave:
+
+1. En Google Cloud, crear un proyecto y habilitar **Maps SDK for Android**.
+2. Crear una *API key* y restringirla a apps Android con el paquete
+   `com.villaguay.reservasdeportivas` y el SHA-1 del certificado de firma (aparece en
+   *Credentials* del proyecto en expo.dev, después del primer build).
+3. Cargarla como variable de entorno **`GOOGLE_MAPS_API_KEY`** de EAS (dashboard de expo.dev →
+   *Environment variables*, o `eas env:create`; ver la documentación de variables de EAS para los
+   entornos `preview` y `production`).
+
+`my-app/app.config.js` lee esa variable y la agrega al manifiesto de Android; sin la variable no
+agrega nada y el mapa **no se dibuja** en los builds de Android. La clave no se escribe en el
+repositorio.
+
+### 5.5 Identidad de la app
 
 | Dato | Valor | Dónde |
 |---|---|---|
@@ -237,7 +254,7 @@ siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
 | `EADDRINUSE :::3000` | Ya hay una API corriendo en el puerto 3000 |
 | `Could not locate the bindings file` (better-sqlite3) | Repetir `pnpm install` con Node 24, o usar Docker |
 | No llegan las push | `NOTIFICACIONES=expo`, teléfono real, permiso concedido y, en Android, development build |
-| El mapa queda en blanco | Necesita internet: carga Leaflet desde `unpkg.com` y los mosaicos de OpenStreetMap |
+| El mapa no se dibuja | En Expo Go: revisá la conexión y el permiso de ubicación. En un **build de Android**: falta la clave `GOOGLE_MAPS_API_KEY` (ver §5.4) |
 | El build de `preview`/`production` no se conecta a la API | La URL de `eas.json` debe ser `https://` y apuntar a la API publicada |
 | `pnpm install --frozen-lockfile` falla | `pnpm-lock.yaml` desincronizado: correr `pnpm install` y commitear el lockfile |
 

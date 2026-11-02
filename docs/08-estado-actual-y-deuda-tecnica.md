@@ -166,7 +166,7 @@ setVideoCache(destino.uri);
 ### B-12 · "Reportar" no sube nada a la API — **media**
 
 - La galería de `espacio/[id].tsx` guarda en SQLite **local** y dice "¡Reporte subido!";
-  `estado-cancha.tsx` sólo muestra un `Alert`. La API tiene `POST /archivos`
+  la pantalla `estado-cancha.tsx` (ya eliminada) sólo mostraba un `Alert`. La API tiene `POST /archivos`
   (multipart, campo `archivo`) listo para esto.
 - **Arreglo (M):** subir con `FormData` y guardar la `url` devuelta; mostrar las URLs de todos.
 
@@ -185,8 +185,8 @@ setVideoCache(destino.uri);
 | G-05 | Distinguir roles en la interfaz (D6) | ⚠️ Parcial: el escáner es sólo para personal; faltan las demás pantallas del personal (G-04) | M |
 | G-06 | Guardar fotos/video para verlos sin datos (§capacidades) | ✅ Resuelto (B-04) | — |
 | G-07 | `expo-sensors` y `kv-store` | Instalados, sin uso real | S |
-| G-08 | `react-native-maps` (PRD) | Se usó Leaflet en WebView (decisión consciente) | — |
-| G-09 | Build de producción con EAS (Entrega) | ⚠️ Configuración lista (`eas.json`, nombre, identificador, permisos). Falta lo que requiere cuentas: `eas init`, URL `https://` de la API en `eas.json`, credenciales de push y generar el build | S |
+| G-08 | ✅ `react-native-maps` (PRD) | Resuelto: el mapa pasó de Leaflet en un `WebView` a `react-native-maps` (y se quitó `react-native-webview`). Pendiente de la entrega: la clave de Google Maps para los builds de Android | — |
+| G-09 | Build de producción con EAS (Entrega) | ⚠️ Configuración lista (`eas.json`, nombre, identificador, permisos). Falta lo que requiere cuentas: `eas init`, URL `https://` de la API en `eas.json`, credenciales de push, la clave `GOOGLE_MAPS_API_KEY` (mapa en Android) y generar el build | S |
 | G-10 | Mostrar el precio por turno y el motivo del bloqueo en la grilla | La API los envía; la app no los muestra | S |
 
 ### Cómo implementar el recordatorio de 2 horas (G-03)
@@ -219,12 +219,12 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | D-03 | ⚠️ Funciones duplicadas | Parcial: se eliminó `obtenerTurnosPorDia`; los filtros del catálogo siguen en el cliente | S |
 | D-04 | ⚠️ Capas saltadas | Parcial: la ficha ya usa `servicios/archivos.ts` y el catálogo usa `servicios/db.ts`; "Mis reservas" y la galería de la ficha siguen abriendo su propia base SQLite | M |
 | D-05 | Mucho `any` | `useState<any[]>`, `catch (error: any)`, `ThemeContext = createContext<any>`; usar los tipos del PRD | M |
-| D-06 | Dos bases SQLite y dos paletas | `mis_reservas_final.db`, `canchas_galeria.db`, `villaguay_deportes.db` (sin uso); `theme/colors.ts` sin uso | S |
+| D-06 | ⚠️ Varias bases SQLite | Parcial: se eliminó la paleta sin uso (`theme/colors.ts`). Siguen tres bases (`mis_reservas_final.db`, `canchas_galeria.db`, `villaguay_deportes.db`): unificarlas es opcional | S |
 | D-07 | ⚠️ Acoplamiento al formato del id de turno | Parcial: el desarmado está en un solo lugar (`servicios/turnos.ts`); sigue dependiendo del formato | S |
-| D-08 | Código muerto y copias de respaldo | `*.txt` en `app/` y `servicios/`, `hooks/useLogin.ts`, `mocks/datos.ts`, plantilla de Expo | S |
-| D-09 | La app no compila limpio con `tsc` | 5 errores en archivos de la plantilla (`useTheme`, `global.css`, `animated-icon.module.css`) | S |
-| D-10 | Dependencias sin uso | `axios`, `zod`, `react-hook-form`, `@hookform/resolvers`, `react-native-maps`; y `package.json` en la raíz con las mismas | S |
-| D-11 | Pantalla `estado-cancha.tsx` huérfana | Sin enlace desde ninguna parte | S |
+| D-08 | ✅ Código muerto y copias de respaldo | Resuelto: se eliminaron los `.txt`, `useLogin.ts` y la plantilla de Expo. Se conserva `mocks/datos.ts` como evidencia de la fase de datos simulados | — |
+| D-09 | ✅ La app no compilaba limpio con `tsc` | Resuelto: `npx tsc --noEmit` termina sin errores | — |
+| D-10 | ✅ Dependencias sin uso | Resuelto: se quitaron `axios`, `zod`, `react-hook-form`, `@hookform/resolvers`, `@expo/ui`, `expo-glass-effect`, `expo-status-bar`, `expo-symbols` y el `package.json` de la raíz. Se conserva `expo-sensors` (G-07) | — |
+| D-11 | ✅ Pantalla `estado-cancha.tsx` huérfana | Resuelto: se eliminó | — |
 | D-12 | Ruta `/` ambigua | `app/index.tsx` y `app/(tabs)/index.tsx` | S |
 | D-13 | Sin tests de la app | Ver [07](07-pruebas-y-calidad.md) | L |
 | D-14 | Lockfile de la API desincronizado | `pnpm install` y commitear `pnpm-lock.yaml` (el CI usa `--frozen-lockfile`) | S |
@@ -235,7 +235,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 
 ## 5. Plan de cierre recomendado (orden sugerido)
 
-**Avance:** las prioridades **1 a 10 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). Siguen la 11 (limpieza) y la 12 (ausentes y pantallas del personal).
+**Avance:** las prioridades **1 a 11 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). Queda la 12 (ausentes y pantallas del personal) y los pendientes menores: D-03, D-04, D-05, D-07, D-12, D-13, D-14, D-17 y D-18.
 
 | Prioridad | Tarea | Resuelve |
 |---|---|---|
@@ -249,7 +249,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | 8 ✅ | Caché de espacios en SQLite + API nueva de archivos | B-11, B-04, G-06 |
 | 9 ✅ | `config.ts` único para la URL de la API | D-01 |
 | 10 ✅ | `eas.json`, nombre e identificador definitivos, permisos para iOS (el build en sí necesita las cuentas: ver README §5) | G-09 |
-| 11 | Limpieza (código muerto, dependencias, `tsc` limpio) | D-02…D-12 |
+| 11 ✅ | Limpieza (código muerto, dependencias, `tsc` limpio) | D-08…D-11 |
 | 12 | Pantalla de ausentes y, si da el tiempo, pantallas de personal | G-02, G-04 |
 
 > Si el tiempo es poco: las prioridades **1 a 4** son las que más se notan en una demostración.

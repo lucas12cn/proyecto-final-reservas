@@ -95,8 +95,10 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | T-18 | Favoritos | Tocar el corazón en una ficha | Cambia el ícono; persiste al volver a entrar |
 | T-19 | Perfil | Editar nombre/teléfono | Se actualiza y persiste |
 | T-20 | Tema | Perfil → Apariencia → Oscuro | Cambia toda la app |
-| T-21 | Mapa | Menú ☰ → Mapa | Marcadores de los 2 complejos; con permiso, punto azul |
-| T-22 | Mapa sin ubicación | Negar el permiso | El mapa funciona igual |
+| T-21 | Mapa | Menú ☰ → Mapa | Marcadores de los 2 complejos; con permiso, punto azul; al tocar un marcador aparece la tarjeta con las canchas y la distancia |
+| T-22 | Mapa sin ubicación | Negar el permiso | El mapa funciona igual (sin punto azul ni distancias) |
+| T-35 | Cómo llegar | En la tarjeta de un complejo, tocar "Cómo llegar" | Se abre Google Maps con la ruta hasta el complejo |
+| T-36 | Complejo más cercano | Con permiso de ubicación | El marcador del complejo más cercano va en verde y la tarjeta dice "El más cercano" |
 | T-23 | Escáner (personal) | Ingresar como `marcelo@villaguay.demo.ar` → ícono QR → huella → cámara | Pide huella/PIN, luego cámara; un código válido registra el ingreso |
 | T-24 | Cerrar sesión | Perfil → Salir | Vuelve a login; no llegan más avisos de esa cuenta |
 | T-25 | Huella al abrir | Cerrar y abrir la app con sesión | Pide huella/PIN antes de entrar |
@@ -129,7 +131,7 @@ Con un build real, **no** con Expo Go (cambian los permisos y no se permite `htt
 |---|---|---|
 | B-01 | Instalar el APK y abrir la app | Nombre "Deportes Villaguay" bajo el ícono; carga el catálogo desde la API publicada (https) |
 | B-02 | Escáner | Pide el permiso de cámara con el texto en castellano |
-| B-03 | Mapa | Pide la ubicación con el texto en castellano; si se niega, el mapa funciona igual |
+| B-03 | Mapa | Pide la ubicación con el texto en castellano; si se niega, el mapa funciona igual. **En Android se dibuja sólo si el build tiene `GOOGLE_MAPS_API_KEY`** |
 | B-04 | Reportar foto | Pide acceso a fotos (sin pedir micrófono ni cámara) |
 | B-05 | Push | Con credenciales FCM cargadas, `POST /dispositivos/prueba` llega al teléfono |
 | B-06 | iPhone (si hay build) | Los permisos y Face ID muestran sus textos; la app no se cierra al pedirlos |

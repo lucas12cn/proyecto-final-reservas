@@ -1,76 +1,46 @@
-import { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons';
-import { obtenerEspacios } from '../../servicios/reservas'; 
+import { obtenerEspacios } from '../../servicios/reservas';
 import { useTema } from '../../hooks/use-theme';
 
-type Complejo = { id: string; nombre: string; lat: number; lng: number; canchas: string[] };
+type Punto = { latitude: number; longitude: number };
+type Complejo = { id: string; nombre: string; latitud: number; longitud: number; canchas: string[] };
 
-// Coordenadas de Villaguay por defecto
-const CENTRO = { lat: -31.8644, lng: -59.0272 };
+// Vista inicial si todavía no hay complejos (centro de Villaguay)
+const REGION_VILLAGUAY = {
+  latitude: -31.8644,
+  longitude: -59.0272,
+  latitudeDelta: 0.06,
+  longitudeDelta: 0.06,
+};
 
-function armarHtml(complejos: Complejo[], usuario: { latitude: number; longitude: number } | null) {
-  const datos = JSON.stringify({ centro: CENTRO, complejos, usuario }).replace(/</g, '\\u003c');
+// Distancia en km entre dos puntos (fórmula de Haversine)
+const distanciaEnKm = (a: Punto, b: Punto) => {
+  const aRadianes = (grados: number) => (grados * Math.PI) / 180;
+  const dLat = aRadianes(b.latitude - a.latitude);
+  const dLng = aRadianes(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(aRadianes(a.latitude)) * Math.cos(aRadianes(b.latitude)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.sqrt(h));
+};
 
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <style>
-    html, body, #map { height: 100%; margin: 0; padding: 0; background-color: #f8fafc; }
-    .leaflet-popup-content-wrapper { border-radius: 12px; }
-    .leaflet-popup-content { font-family: sans-serif; text-align: center; font-size: 14px; margin: 10px; }
-    .titulo { font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #0f172a; }
-    .canchas { font-size: 12px; color: #64748b; }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    var datos = ${datos};
-    var map = L.map('map', { zoomControl: false }).setView([datos.centro.lat, datos.centro.lng], 14);
-
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-
-    var puntos = [];
-    datos.complejos.forEach(function (c) {
-      var contenidoPopup = '<div class="titulo">' + c.nombre + '</div>' + 
-                           '<div class="canchas">' + c.canchas.length + ' canchas disponibles</div>';
-      
-      L.marker([c.lat, c.lng]).addTo(map).bindPopup(contenidoPopup);
-      puntos.push([c.lat, c.lng]);
-    });
-
-    if (puntos.length > 0) {
-      map.fitBounds(L.latLngBounds(puntos).pad(0.2), { maxZoom: 15 });
-    }
-
-    if (datos.usuario) {
-      L.circleMarker([datos.usuario.latitude, datos.usuario.longitude], {
-        radius: 8,
-        color: '#ffffff',
-        weight: 2,
-        fillColor: '#3b82f6',
-        fillOpacity: 1
-      }).addTo(map);
-    }
-  </script>
-</body>
-</html>`;
-}
+const textoDistancia = (km: number) =>
+  km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1).replace('.', ',')} km`;
 
 export default function MapaScreen() {
-  const { paleta } = useTema();
-  const [ubicacionUsuario, setUbicacionUsuario] = useState<Location.LocationObjectCoords | null>(null);
+  const { paleta, esOscuro } = useTema();
+  const mapaRef = useRef<MapView>(null);
+
   const [complejos, setComplejos] = useState<Complejo[]>([]);
+  const [seleccionado, setSeleccionado] = useState<Complejo | null>(null);
+  const [ubicacion, setUbicacion] = useState<Punto | null>(null);
+  const [permisoUbicacion, setPermisoUbicacion] = useState(false);
+  const [mapaListo, setMapaListo] = useState(false);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -78,29 +48,30 @@ export default function MapaScreen() {
     pedirUbicacion();
   }, []);
 
+  // Agrupa los espacios por complejo (se usan las coordenadas del primer espacio de cada uno)
   const cargarDatos = async () => {
     try {
       const listaEspacios = await obtenerEspacios();
-      const complejosAgrupados: Record<string, Complejo> = {};
-      
+      const agrupados: Record<string, Complejo> = {};
+
       listaEspacios.forEach((espacio: any) => {
         if (espacio.coordenadas && espacio.coordenadas.latitud && espacio.coordenadas.longitud) {
           const nombreComplejo = espacio.complejo || 'Complejo Deportivo';
-          
-          if (!complejosAgrupados[nombreComplejo]) {
-            complejosAgrupados[nombreComplejo] = {
+
+          if (!agrupados[nombreComplejo]) {
+            agrupados[nombreComplejo] = {
               id: nombreComplejo,
               nombre: nombreComplejo,
-              lat: espacio.coordenadas.latitud,
-              lng: espacio.coordenadas.longitud,
-              canchas: []
+              latitud: espacio.coordenadas.latitud,
+              longitud: espacio.coordenadas.longitud,
+              canchas: [],
             };
           }
-          complejosAgrupados[nombreComplejo].canchas.push(espacio.nombre);
+          agrupados[nombreComplejo].canchas.push(espacio.nombre);
         }
       });
 
-      setComplejos(Object.values(complejosAgrupados));
+      setComplejos(Object.values(agrupados));
     } catch (error) {
       console.error('Error al cargar complejos:', error);
     } finally {
@@ -108,25 +79,55 @@ export default function MapaScreen() {
     }
   };
 
+  // La ubicación es opcional: si se niega el permiso, el mapa funciona igual (PRD)
   const pedirUbicacion = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
-      const location = await Location.getCurrentPositionAsync({});
-      setUbicacionUsuario(location.coords);
+      setPermisoUbicacion(true);
+      const posicion = await Location.getCurrentPositionAsync({});
+      setUbicacion({ latitude: posicion.coords.latitude, longitude: posicion.coords.longitude });
     } catch (error) {
       console.warn('No se pudo obtener la ubicación:', error);
     }
   };
 
-  const html = useMemo(
-    () => armarHtml(complejos, ubicacionUsuario),
-    [complejos, ubicacionUsuario]
-  );
+  // Encuadra todos los complejos apenas el mapa y los datos están listos
+  useEffect(() => {
+    if (!mapaListo || complejos.length === 0) return;
+
+    if (complejos.length === 1) {
+      mapaRef.current?.animateToRegion(
+        { latitude: complejos[0].latitud, longitude: complejos[0].longitud, latitudeDelta: 0.02, longitudeDelta: 0.02 },
+        0
+      );
+      return;
+    }
+    mapaRef.current?.fitToCoordinates(
+      complejos.map((c) => ({ latitude: c.latitud, longitude: c.longitud })),
+      { edgePadding: { top: 140, right: 60, bottom: 220, left: 60 }, animated: false }
+    );
+  }, [mapaListo, complejos]);
+
+  // El complejo más cercano al usuario (PRD: "saber qué complejo tiene más cerca")
+  const masCercanoId = useMemo(() => {
+    if (!ubicacion || complejos.length === 0) return null;
+    let mejor = complejos[0];
+    let mejorKm = distanciaEnKm(ubicacion, { latitude: mejor.latitud, longitude: mejor.longitud });
+    for (const c of complejos.slice(1)) {
+      const km = distanciaEnKm(ubicacion, { latitude: c.latitud, longitude: c.longitud });
+      if (km < mejorKm) { mejor = c; mejorKm = km; }
+    }
+    return mejor.id;
+  }, [ubicacion, complejos]);
+
+  const comoLlegar = (c: Complejo) => {
+    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${c.latitud},${c.longitud}`);
+  };
 
   return (
     <View style={styles.container}>
-      {/* Cabecera Flotante */}
+      {/* Cabecera flotante */}
       <View style={[styles.cabeceraFlotante, { backgroundColor: paleta.surface }]}>
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 5 }}>
           <Ionicons name="arrow-back" size={24} color={paleta.text} />
@@ -135,15 +136,65 @@ export default function MapaScreen() {
         <View style={{ width: 34 }} />
       </View>
 
-      {!cargando && (
-        <WebView
-          originWhitelist={['*']}
-          source={{ html }}
-          style={StyleSheet.absoluteFill}
-          javaScriptEnabled
-          domStorageEnabled
-          scrollEnabled={false}
-        />
+      <MapView
+        ref={mapaRef}
+        style={StyleSheet.absoluteFill}
+        initialRegion={REGION_VILLAGUAY}
+        onMapReady={() => setMapaListo(true)}
+        showsUserLocation={permisoUbicacion}
+        showsMyLocationButton={false}
+        toolbarEnabled={false}
+        userInterfaceStyle={esOscuro ? 'dark' : 'light'}
+      >
+        {complejos.map((c) => (
+          <Marker
+            key={c.id}
+            coordinate={{ latitude: c.latitud, longitude: c.longitud }}
+            pinColor={c.id === masCercanoId ? '#16a34a' : undefined}
+            onPress={() => setSeleccionado(c)}
+          />
+        ))}
+      </MapView>
+
+      {/* Tarjeta del complejo elegido */}
+      {seleccionado && (
+        <View style={[styles.tarjeta, { backgroundColor: paleta.surface, borderColor: paleta.border }]}>
+          <View style={styles.filaTitulo}>
+            <Text style={[styles.tarjetaTitulo, { color: paleta.text }]} numberOfLines={2}>
+              {seleccionado.nombre}
+            </Text>
+            <TouchableOpacity onPress={() => setSeleccionado(null)} style={{ padding: 4 }}>
+              <Ionicons name="close" size={22} color={paleta.muted} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={{ color: paleta.muted, marginTop: 2 }}>
+            {seleccionado.canchas.length} {seleccionado.canchas.length === 1 ? 'cancha' : 'canchas'}
+            {ubicacion
+              ? ` · a ${textoDistancia(distanciaEnKm(ubicacion, { latitude: seleccionado.latitud, longitude: seleccionado.longitud }))}`
+              : ''}
+            {seleccionado.id === masCercanoId ? ' · El más cercano' : ''}
+          </Text>
+          <Text style={{ color: paleta.muted, fontSize: 12, marginTop: 6 }} numberOfLines={3}>
+            {seleccionado.canchas.join(' · ')}
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.botonLlegar, { backgroundColor: paleta.accent }]}
+            onPress={() => comoLlegar(seleccionado)}
+          >
+            <Ionicons name="navigate" size={18} color="#fff" />
+            <Text style={styles.textoBotonLlegar}>Cómo llegar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!cargando && complejos.length === 0 && (
+        <View style={[styles.aviso, { backgroundColor: paleta.surface }]}>
+          <Text style={{ color: paleta.muted, textAlign: 'center' }}>
+            No hay complejos para mostrar. Probá de nuevo con conexión.
+          </Text>
+        </View>
       )}
 
       {cargando && (
@@ -159,7 +210,7 @@ export default function MapaScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centrado: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  
+
   cabeceraFlotante: {
     position: 'absolute',
     top: 50,
@@ -177,5 +228,34 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  tituloCabecera: { fontSize: 18, fontWeight: 'bold' }
+  tituloCabecera: { fontSize: 18, fontWeight: 'bold' },
+
+  tarjeta: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 24,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    zIndex: 10,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  filaTitulo: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
+  tarjetaTitulo: { flex: 1, fontSize: 18, fontWeight: 'bold' },
+  botonLlegar: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  textoBotonLlegar: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  aviso: { position: 'absolute', left: 20, right: 20, bottom: 40, padding: 14, borderRadius: 12, zIndex: 10 },
 });

@@ -75,7 +75,7 @@ y las diferencias están en [08](08-estado-actual-y-deuda-tecnica.md).
 | RF-02 | Filtrar por deporte y complejo | PRD §1 | ✅ (en el cliente) |
 | RF-03 | Ficha del espacio: fotos, características, precio, reglas | PRD §1 | ✅ `espacio/[id].tsx` |
 | RF-04 | Video del espacio (reproducción) | PRD §1 | ✅ `expo-video` |
-| RF-05 | Mapa de complejos y "cómo llegar" | PRD §1 | ✅ mapa Leaflet (WebView) + enlace a Google Maps |
+| RF-05 | Mapa de complejos y "cómo llegar" | PRD §1 | ✅ mapa nativo (`react-native-maps`), tarjeta por complejo con distancia y botón "Cómo llegar" |
 | RF-06 | Grilla de un espacio por día, 7 días | PRD §2 | ✅ `espacio/disponibilidad.tsx` |
 | RF-07 | Turno pasado no reservable | PRD §2 | ✅ (cliente y servidor) |
 | RF-08 | Reservas fijas visibles como ocupadas | PRD §2 | ✅ (resuelto por la API en el estado `fijo`) |
@@ -190,8 +190,8 @@ pantalla habla directamente con la red; todo pasa por una capa de servicios así
 | Capacidad (PRD) | Paquete | Dónde se usa | Estado |
 |---|---|---|---|
 | Cámara (QR) | `expo-camera` | `(tabs)/escaner.tsx` | ✅ |
-| Galería | `expo-image-picker` | `espacio/[id].tsx`, `(tabs)/estado-cancha.tsx` | ✅ (subida simulada/local) |
-| Ubicación y mapa | `expo-location` + mapa | `(tabs)/mapa.tsx` | ✅ (Leaflet en WebView; `react-native-maps` está instalado pero no se usa) |
+| Galería | `expo-image-picker` | `espacio/[id].tsx` | ✅ (se guarda sólo en el teléfono) |
+| Ubicación y mapa | `expo-location` + `react-native-maps` | `(tabs)/mapa.tsx` | ✅ (en builds de Android requiere `GOOGLE_MAPS_API_KEY`) |
 | Notificaciones | `expo-notifications` | `servicios/notificaciones.ts`, `_layout.tsx` | ✅ push y recordatorio local |
 | Persistencia y red | `expo-sqlite`, `kv-store`, `expo-network` | `(tabs)/index.tsx`, `espacio/[id].tsx`, `servicios/db.ts`, `servicios/*` | ✅ SQLite (reservas y catálogo) y red · `kv-store` sólo en `servicios/db.ts` (sin uso real) |
 | Seguridad | `expo-secure-store`, `expo-local-authentication` | `AuthContext`, `app/index.tsx`, `escaner.tsx` | ✅ |
