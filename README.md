@@ -108,8 +108,8 @@ Todos con contraseña **`villaguay2026`** (todo en minúscula).
 | `emiliano@mail.com` | jugador | El usuario del PRD, con historial y una cancelación tardía |
 | `lleno@demo.ar` | jugador | Tiene 3 reservas activas: la cuarta devuelve `LIMITE_DE_RESERVAS` |
 | `nuevo@demo.ar` | jugador | Cuenta vacía |
-| `marcelo@villaguay.demo.ar` | encargado | Escáner de ingresos y **Agenda del día** (menú ☰: ver reservas, contacto y marcar ausentes) |
-| `nahuel@villaguay.demo.ar` | administrador | Todo, más reservas fijas y precios |
+| `marcelo@villaguay.demo.ar` | encargado | Escáner de ingresos y, desde el menú ☰: **Agenda del día** (ausentes) y **Bloqueos** |
+| `nahuel@villaguay.demo.ar` | administrador | Todo lo del encargado, más **Reservas fijas** y **Precios** (menú ☰) |
 
 > Los campos de ingreso de la app arrancan vacíos: escribí el email y la contraseña.
 

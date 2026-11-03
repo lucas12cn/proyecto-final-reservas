@@ -107,6 +107,18 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | T-28 | Cantidad de personas | Confirmar una reserva bajando el selector | El ingreso (T-27) y la reserva muestran esa cantidad |
 | T-29 | Fecha por la noche | Entre las 21:00 y 24:00, abrir la grilla | "Hoy" muestra los turnos de hoy y los 7 días cargan |
 | T-30 | Sesión vencida | Borrar o alterar el token (o esperar 30 días) y recargar Mis Reservas | Aviso "Sesión vencida" y vuelve al ingreso |
+| T-44 | Bloqueos (personal) | Como `marcelo@villaguay.demo.ar`: menú ☰ → Bloqueos | Lista los bloqueos programados (ordenados por fecha) con espacio, tramo y motivo |
+| T-45 | Nuevo bloqueo, día entero | Nuevo → elegir 1 espacio y un día futuro, "Todo el día", motivo → Bloquear | Se crea; en la grilla de ese espacio y día todo figura "Mantenimiento" |
+| T-46 | Aviso de reservas afectadas | En el formulario, elegir un espacio y día con una reserva confirmada | Aparece "⚠️ 1 reserva confirmada se va a cancelar…"; en la confirmación también se aclara |
+| T-47 | Bloqueo por tramo | Apagar "Todo el día", Desde/Hasta | El fin siempre queda después del inicio; se bloquea sólo ese tramo |
+| T-48 | Motivo obligatorio | Bloquear sin motivo | Alerta "Escribí el motivo del bloqueo." |
+| T-49 | Quitar un bloqueo | Tocar el tacho de un bloqueo → Quitar | Desaparece y los turnos vuelven a estar libres; las reservas canceladas siguen canceladas |
+| T-50 | Reservas fijas (administrador) | Como `nahuel@villaguay.demo.ar`: menú ☰ → Reservas fijas | Lista las 4 fijas de demo con titular, espacio, día y horario |
+| T-51 | Fija superpuesta | Nueva fija en `esp-02`, martes 21:00 a 22:00 | Alerta "Ya hay una reserva fija en ese horario." |
+| T-52 | Nueva fija y baja | Crear una fija válida; luego darla de baja | Aparece como ocupada en la grilla del día correspondiente; al darla de baja vuelve a estar libre |
+| T-53 | Precios (administrador) | Menú ☰ → Precios → tocar un espacio → cambiar el valor | Se actualiza en la lista y en la ficha del espacio |
+| T-54 | Precio inválido | Guardar 0 o vacío | "Escribí un número entero de pesos, mayor que cero." |
+| T-55 | Roles | Como encargado: menú ☰ | Ve Agenda y Bloqueos, **no** Reservas fijas ni Precios; como jugador no ve ninguna |
 | T-31 | Recordatorio | Reservar el turno que empiece dentro de 2 a 3 horas y esperar a que falten 2 h | Llega "Tu turno es en 2 horas" y al tocarla abre Mis Reservas |
 | T-32 | Recordatorio cancelado | Reservar y cancelar | No llega el recordatorio |
 | T-33 | Catálogo sin conexión | Abrir Canchas con conexión, activar modo avión y reabrir la app | La lista, los filtros y la ficha siguen disponibles |
@@ -124,7 +136,7 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | ID | Caso | Pasos | Resultado esperado |
 |---|---|---|---|
 | N-01 | Prueba | Swagger → `POST /dispositivos/prueba` | `{ dispositivos: 1 }` y llega la push |
-| N-02 | Reserva cancelada | Encargado bloquea un turno reservado por el usuario del teléfono | Llega "Reserva cancelada" con el motivo |
+| N-02 | Reserva cancelada | Encargado bloquea (menú ☰ → Bloqueos) un turno reservado por el usuario del teléfono | Llega "Reserva cancelada" con el motivo |
 | N-03 | Turno liberado | A tiene el espacio de favorito; B reserva y cancela un turno futuro de ese espacio | A recibe "Se liberó un turno"; B no |
 | N-04 | Toque con la app cerrada | Tocar la notificación | Pasa por la huella (si corresponde) y abre la pantalla correcta |
 | N-05 | Cambio de dueño | Cerrar sesión y entrar con otra cuenta en el mismo teléfono | Los avisos llegan a la cuenta nueva, no a la anterior |

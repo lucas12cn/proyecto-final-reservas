@@ -11,6 +11,7 @@ export default function TabsLayout() {
   const { usuario } = useAuth();
   // El escáner de ingresos es del personal: el ícono QR sólo se muestra a encargados y administradores.
   const esPersonal = usuario?.rol === 'encargado' || usuario?.rol === 'administrador';
+  const esAdmin = usuario?.rol === 'administrador';
 
   const irA = (ruta: any) => {
     setMenuVisible(false);
@@ -53,6 +54,9 @@ export default function TabsLayout() {
         <Tabs.Screen name="escaner" options={{ href: null }} />
         <Tabs.Screen name="mapa" options={{ href: null }} />
         <Tabs.Screen name="agenda" options={{ href: null, headerTitle: 'Agenda del día' }} />
+        <Tabs.Screen name="bloqueos" options={{ href: null, headerTitle: 'Bloqueos' }} />
+        <Tabs.Screen name="fijas" options={{ href: null, headerTitle: 'Reservas fijas' }} />
+        <Tabs.Screen name="precios" options={{ href: null, headerTitle: 'Precios' }} />
       </Tabs>
 
       {/* MENÚ DESPLEGABLE */}
@@ -78,6 +82,35 @@ export default function TabsLayout() {
                 <Ionicons name="list-outline" size={22} color={paleta.text} />
                 <Text style={[estilos.textoOpcion, { color: paleta.text }]}>Agenda del día</Text>
               </TouchableOpacity>
+            )}
+
+            {/* Personal: bloquear turnos. Administrador: reservas fijas y precios */}
+            {esPersonal && (
+              <TouchableOpacity
+                style={[estilos.opcionMenu, { borderBottomColor: paleta.border, borderBottomWidth: 0 }]}
+                onPress={() => irA('/bloqueos')}
+              >
+                <Ionicons name="close-circle-outline" size={22} color={paleta.text} />
+                <Text style={[estilos.textoOpcion, { color: paleta.text }]}>Bloqueos</Text>
+              </TouchableOpacity>
+            )}
+            {esAdmin && (
+              <>
+                <TouchableOpacity
+                  style={[estilos.opcionMenu, { borderBottomColor: paleta.border, borderBottomWidth: 0 }]}
+                  onPress={() => irA('/fijas')}
+                >
+                  <Ionicons name="repeat-outline" size={22} color={paleta.text} />
+                  <Text style={[estilos.textoOpcion, { color: paleta.text }]}>Reservas fijas</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[estilos.opcionMenu, { borderBottomColor: paleta.border, borderBottomWidth: 0 }]}
+                  onPress={() => irA('/precios')}
+                >
+                  <Ionicons name="cash-outline" size={22} color={paleta.text} />
+                  <Text style={[estilos.textoOpcion, { color: paleta.text }]}>Precios</Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
         </Pressable>

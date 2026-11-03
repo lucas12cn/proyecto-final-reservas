@@ -149,7 +149,10 @@ my-app/src/
 │   │   ├── perfil.tsx        Perfil, tema, salir
 │   │   ├── mapa.tsx          Mapa de complejos (oculta en la barra: se abre desde el menú ☰)
 │   │   ├── escaner.tsx       Escáner QR (oculta en la barra: se abre con el ícono QR de la cabecera)
-│   │   └── agenda.tsx        Agenda del día y ausentes (oculta; menú ☰, sólo personal)
+│   │   ├── agenda.tsx        Agenda del día y ausentes (oculta; menú ☰, sólo personal)
+│   │   ├── bloqueos.tsx      Bloquear turnos y días (oculta; menú ☰, sólo personal)
+│   │   ├── fijas.tsx         Reservas fijas (oculta; menú ☰, sólo administrador)
+│   │   └── precios.tsx       Precio por hora de cada espacio (oculta; menú ☰, sólo administrador)
 │   └── espacio/              Flujo de reserva (fuera de las pestañas)
 │       ├── [id].tsx          Ficha del espacio
 │       ├── disponibilidad.tsx  Grilla de turnos
@@ -166,7 +169,9 @@ my-app/src/
 │   ├── turnos.ts             Id de turno (tur-esp-02-AAAAMMDD-HH) y fechas locales
 │   ├── archivos.ts           Copia local de fotos/videos (expo-file-system nuevo)
 │   └── db.ts                 SQLite: catálogo de espacios y deportes (respaldo sin conexión)
+├── componentes/personal.tsx  Piezas de formulario del personal (SelectorDia, Paso, ListaEspacios)
 ├── tipos/index.ts            Tipos del PRD (copia literal)
+├── tipos/personal.ts         Bloqueo (tipo que agrega la API; no es del PRD)
 └── mocks/datos.ts            Datos falsos del PRD (sin uso actual)
 ```
 

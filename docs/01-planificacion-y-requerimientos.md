@@ -93,7 +93,7 @@ y las diferencias están en [08](08-estado-actual-y-deuda-tecnica.md).
 | RF-20 | Aviso por turno liberado en favorito | PRD §5 | ✅ push del servidor |
 | RF-21 | Marcar espacios favoritos | PRD §5 | ✅ corazón en la ficha |
 | RF-22 | Registro, ingreso y perfil | PRD (cuenta) | ✅ `login`, `registro`, `perfil` |
-| RF-23 | Bloquear turnos/días, fijas, agenda, precio (personal) | PRD §6 | ⚠️ sólo la **agenda del día** (con contacto y ausentes); faltan bloqueos, reservas fijas y precio (la API los soporta) |
+| RF-23 | Bloquear turnos/días, fijas, agenda, precio (personal) | PRD §6 | ✅ pantallas **Agenda del día**, **Bloqueos** (encargado y administrador), **Reservas fijas** y **Precios** (administrador). Sin edición de fijas ni bloqueos de varios días |
 | RF-24 | Subir fotos del estado de una cancha | PRD (capacidades) | ⚠️ se guarda **sólo en el teléfono** |
 
 ## 4. Requisitos no funcionales
@@ -120,7 +120,7 @@ La cátedra dejó escritas las decisiones sobre los "huecos" del PRD
 | D1 | Id de turno `tur-<espacioId>-<AAAAMMDD>-<HH>` (el del PRD no incluía el espacio) | `(tabs)/index.tsx` **desarma el id** para mostrar fecha y hora (`formatearTurno`) |
 | D2 | QR = `VGY-<MMDD>-<HH>-<6 aleatorios>` | Es el valor que se dibuja como QR |
 | D3 | El jugador no puede cancelar tarde; el encargado sí (y suma "tardía") | La app muestra el mensaje de error de la API (`CANCELACION_FUERA_DE_PLAZO`) en una alerta |
-| D6 | Encargado: agenda, ingresos, ausentes, bloqueos. Administrador: además fijas y precios | El escáner y su ícono son sólo para personal; el resto de las pantallas del personal sigue pendiente |
+| D6 | Encargado: agenda, ingresos, ausentes, bloqueos. Administrador: además fijas y precios | La interfaz lo respeta: el escáner, la agenda y los bloqueos son para el personal; las reservas fijas y los precios sólo para el administrador (la API igual valida el rol) |
 | D7 | No hay interruptor de avisos: siempre se notifica | Para no recibir avisos de un espacio, se quita de favoritos |
 | D8 | El último turno termina en `"24:00"` | La grilla muestra `inicio` (`substring(0,5)`) |
 | D9 | "Mover" un turno = cancelar y reservar otro | Sin pantalla de "mover" |

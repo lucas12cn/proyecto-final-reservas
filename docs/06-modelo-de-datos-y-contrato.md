@@ -201,10 +201,10 @@ Tipos que agrega la API (`contract/api.ts`): `Meta`, `RespuestaLista<T>`, `Respu
 | POST | `/reservas/:id/ausente` | 🧑‍🔧 | ✅ | "No se presentó" |
 | GET | `/agenda` | 🧑‍🔧 | — | Turnos de todos los espacios en un día |
 | GET | `/usuarios/:id` | 🧑‍🔧 | ✅ | Usuario con teléfono (botón "Ver contacto" de la agenda) |
-| POST / GET / DELETE | `/bloqueos` | 🧑‍🔧 | — | Bloquear, listar, quitar |
-| GET | `/fijas` | 🧑‍🔧 | — | Reservas fijas |
-| POST / PATCH / DELETE | `/fijas` · `/fijas/:id` | 🛡 | — | Alta, edición, baja de fijas |
-| PATCH | `/espacios/:id` | 🛡 | — | `{ precioPorHora }` |
+| POST / GET / DELETE | `/bloqueos` | 🧑‍🔧 | ✅ | Bloquear, listar, quitar |
+| GET | `/fijas` | 🧑‍🔧 | ✅ | Reservas fijas (la app pide `activa=true`) |
+| POST / PATCH / DELETE | `/fijas` · `/fijas/:id` | 🛡 | ✅ POST y DELETE · ❌ PATCH | Alta, edición, baja (lógica) de fijas |
+| PATCH | `/espacios/:id` | 🛡 | ✅ | `{ precioPorHora }` |
 | POST | `/archivos` | 🔒 | ❌ | Subir foto/audio/video |
 | GET | `/archivos/:clave` | 🌐 | (indirecto) | Servir archivo (admite `Range`) |
 | POST | `/dispositivos` | 🔒 | ✅ | Anotar el teléfono para push |

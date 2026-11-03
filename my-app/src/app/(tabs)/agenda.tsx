@@ -5,25 +5,13 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTema } from '../../hooks/use-theme';
 import { useAuth } from '../../contexto/AuthContext';
 import { obtenerReservasDelDia, obtenerEspacios, marcarAusenteApi, obtenerUsuarioApi } from '../../servicios/reservas';
-import { aFechaLocal, desplazarDia, leerTurnoId } from '../../servicios/turnos';
+import { aFechaLocal, desplazarDia, etiquetaDelDia, leerTurnoId } from '../../servicios/turnos';
 import { mensajeDe } from '../../servicios/errores';
 import { Reserva, Usuario } from '../../tipos';
 
 const MINUTOS_PARA_AUSENTE = 15; // regla D10: se puede marcar desde 15 minutos después del inicio
-const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-
 const dos = (n: number) => String(n).padStart(2, '0');
 const horaLocal = (fecha: Date) => `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
-
-// "Hoy 19/09", "Ayer 18/09", "Mañana 20/09" o "Sáb 19/09"
-const etiquetaDelDia = (fecha: string) => {
-  const [anio, mes, dia] = fecha.split('-').map(Number);
-  const nombre = DIAS[new Date(anio, mes - 1, dia, 12).getDay()];
-  const hoy = aFechaLocal(new Date());
-  const prefijo =
-    fecha === hoy ? 'Hoy' : fecha === desplazarDia(hoy, -1) ? 'Ayer' : fecha === desplazarDia(hoy, 1) ? 'Mañana' : nombre;
-  return `${prefijo} ${dos(dia)}/${dos(mes)}`;
-};
 
 export default function AgendaScreen() {
   const { paleta } = useTema();

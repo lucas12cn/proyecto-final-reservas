@@ -181,8 +181,8 @@ setVideoCache(destino.uri);
 | G-01 | Registro real del ingreso con QR (§4) | ✅ Resuelto (llama a `POST /ingresos`) | — |
 | G-02 | Marcar "no se presentó" (§4) | ✅ Resuelto: pantalla **Agenda del día** (`agenda.tsx`) | — |
 | G-03 | **Recordatorio 2 h antes** (§5) | ✅ Resuelto (notificación local; a confirmar en un teléfono) | — |
-| G-04 | Pantallas del personal (§6): bloqueos, fijas, agenda, precio | ⚠️ Parcial: hay **agenda del día** (con contacto y ausentes). Faltan bloqueos, reservas fijas y precio | L |
-| G-05 | Distinguir roles en la interfaz (D6) | ⚠️ Parcial: el escáner es sólo para personal; faltan las demás pantallas del personal (G-04) | M |
+| G-04 | ✅ Pantallas del personal (§6): bloqueos, fijas, agenda, precio | Resuelto: **Agenda del día**, **Bloqueos**, **Reservas fijas** y **Precios** | — |
+| G-05 | ✅ Distinguir roles en la interfaz (D6) | Resuelto: escáner, agenda y bloqueos para el personal; reservas fijas y precios sólo para el administrador | — |
 | G-06 | Guardar fotos/video para verlos sin datos (§capacidades) | ✅ Resuelto (B-04) | — |
 | G-07 | `expo-sensors` y `kv-store` | Instalados, sin uso real | S |
 | G-08 | ✅ `react-native-maps` (PRD) | Resuelto: el mapa pasó de Leaflet en un `WebView` a `react-native-maps` (y se quitó `react-native-webview`). Pendiente de la entrega: la clave de Google Maps para los builds de Android | — |
@@ -230,12 +230,13 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | D-14 | Lockfile de la API desincronizado | `pnpm install` y commitear `pnpm-lock.yaml` (el CI usa `--frozen-lockfile`) | S |
 | D-15 | `http://` en claro | Aceptable en desarrollo; para producción usar `https://` (Render) | — |
 | D-16 | ✅ `Total a pagar` | Resuelto: ahora dice "Precio del turno" | — |
+| D-19 | Límites de las pantallas del personal | Las reservas fijas no se pueden **editar** (sólo crear y dar de baja; la API tiene `PATCH /fijas/:id`) y un bloqueo cubre **un solo día** (para varios días hay que crear uno por día) | S |
 | D-18 | Íconos y pantalla de inicio de la plantilla | `assets/images/icon.png`, `android-icon-*.png`, `splash-icon.png`, `favicon.png` son los de Expo; sin ícono de notificación propio (Android usa el del launcher) | S |
 | D-17 | Estilos en línea con mucha repetición | Extraer componentes (`Boton`, `Tarjeta`, `Chip`) | M |
 
 ## 5. Plan de cierre recomendado (orden sugerido)
 
-**Avance:** las prioridades **1 a 11 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). De la 12 está hecha la agenda con ausentes; quedan las pantallas de bloqueos, reservas fijas y precio (G-04) y los pendientes menores: D-03, D-04, D-05, D-07, D-12, D-13, D-14, D-17 y D-18.
+**Avance:** las prioridades **1 a 12 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). Quedan los pendientes menores: D-03, D-04, D-05, D-07, D-12, D-13, D-17, D-18 y D-19.
 
 | Prioridad | Tarea | Resuelve |
 |---|---|---|
@@ -250,6 +251,6 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | 9 ✅ | `config.ts` único para la URL de la API | D-01 |
 | 10 ✅ | `eas.json`, nombre e identificador definitivos, permisos para iOS (el build en sí necesita las cuentas: ver README §5) | G-09 |
 | 11 ✅ | Limpieza (código muerto, dependencias, `tsc` limpio) | D-08…D-11 |
-| 12 ⚠️ | Pantalla de ausentes (hecha: **Agenda del día**) y, si da el tiempo, pantallas de personal (bloqueos, fijas, precio) | G-02 ✅, G-04 parcial |
+| 12 ✅ | Pantalla de ausentes y pantallas del personal (agenda, bloqueos, reservas fijas, precios) | G-02, G-04, G-05 |
 
 > Si el tiempo es poco: las prioridades **1 a 4** son las que más se notan en una demostración.

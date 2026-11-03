@@ -290,7 +290,7 @@ Con el valor por defecto, los avisos aparecen en la consola de la API. Sirve par
 3. Iniciar sesión → aceptar el permiso de notificaciones.
 4. En Swagger (`/docs`) → **Authorize** con el token → `POST /dispositivos/prueba`.
    Debe responder `{ dispositivos: 1 }` y llegar "Notificación de prueba".
-5. Probar el aviso real: con `marcelo@villaguay.demo.ar` (encargado) bloquear un turno que
+5. Probar el aviso real: con `marcelo@villaguay.demo.ar` (encargado; en la app, menú ☰ → **Bloqueos**) bloquear un turno que
    tenga una reserva del usuario del teléfono → llega "Reserva cancelada".
 6. Probar el aviso de favoritos: marcar un espacio como favorito con el usuario A; con el
    usuario B reservar y cancelar un turno futuro de ese espacio → A recibe "Se liberó un turno".

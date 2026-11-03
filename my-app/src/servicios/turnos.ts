@@ -40,3 +40,24 @@ export const desplazarDia = (fecha: string, dias: number): string => {
   // Mediodía: evita saltos por cambios de horario del teléfono
   return aFechaLocal(new Date(anio, mes - 1, dia + dias, 12));
 };
+
+export const dosDigitos = (n: number) => String(n).padStart(2, '0');
+
+export const DIAS_CORTOS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+export const DIAS_LARGOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+/** "Hoy 19/09", "Ayer 18/09", "Mañana 20/09" o "Sáb 19/09". */
+export const etiquetaDelDia = (fecha: string): string => {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const nombre = DIAS_CORTOS[new Date(anio, mes - 1, dia, 12).getDay()];
+  const hoy = aFechaLocal(new Date());
+  const prefijo =
+    fecha === hoy ? 'Hoy' : fecha === desplazarDia(hoy, -1) ? 'Ayer' : fecha === desplazarDia(hoy, 1) ? 'Mañana' : nombre;
+  return `${prefijo} ${dosDigitos(dia)}/${dosDigitos(mes)}`;
+};
+
+/** Día de la semana (0 = domingo … 6 = sábado) de una fecha AAAA-MM-DD. */
+export const diaDeLaSemana = (fecha: string): number => {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  return new Date(anio, mes - 1, dia, 12).getDay();
+};

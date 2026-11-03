@@ -46,6 +46,9 @@ flowchart TB
 | `/(tabs)/perfil` | `app/(tabs)/perfil.tsx` | Pestaña 3 | Barra inferior |
 | `/mapa` | `app/(tabs)/mapa.tsx` | Pestaña **oculta** (`href: null`) | Menú ☰ de la cabecera |
 | `/agenda` | `app/(tabs)/agenda.tsx` | Pestaña **oculta** | Menú ☰ (sólo encargado/administrador) |
+| `/bloqueos` | `app/(tabs)/bloqueos.tsx` | Pestaña **oculta** | Menú ☰ (sólo encargado/administrador) |
+| `/fijas` | `app/(tabs)/fijas.tsx` | Pestaña **oculta** | Menú ☰ (sólo administrador) |
+| `/precios` | `app/(tabs)/precios.tsx` | Pestaña **oculta** | Menú ☰ (sólo administrador) |
 | `/escaner` | `app/(tabs)/escaner.tsx` | Pestaña **oculta** | Ícono QR de la cabecera (sólo se muestra a encargados y administradores) |
 | `/espacio/[id]` | `app/espacio/[id].tsx` | Stack | Tarjeta del catálogo; toque de un aviso "Se liberó un turno" |
 | `/espacio/disponibilidad` | `app/espacio/disponibilidad.tsx` | Stack | Botón "Ver disponibilidad" de la ficha |
@@ -154,6 +157,12 @@ lanza `errorSinSesion()` (código `SIN_SESION`).
 | `obtenerReservasDelDia(fecha)` | `GET /reservas?fecha=&pagina=&porPagina=100` + Bearer | (personal) Recorre las páginas hasta juntar todas; lanza `ErrorDeApi` |
 | `marcarAusenteApi(reservaId)` | `POST /reservas/:id/ausente` + Bearer | (personal) Devuelve la reserva ya `ausente`; lanza `ErrorDeApi` |
 | `obtenerUsuarioApi(usuarioId)` | `GET /usuarios/:id` + Bearer | (personal) Devuelve el usuario con su teléfono; lanza `ErrorDeApi` |
+| `obtenerBloqueos(desde)` | `GET /bloqueos?desde=` + Bearer | (personal) Todas las páginas; lanza `ErrorDeApi` |
+| `crearBloqueosApi(nuevo)` | `POST /bloqueos` + Bearer | (personal) Un bloqueo por espacio. Para el día entero **no** manda `inicio` ni `fin`. El servidor cancela las reservas afectadas y avisa por push |
+| `quitarBloqueoApi(id)` | `DELETE /bloqueos/:id` + Bearer | (personal) 204 sin cuerpo |
+| `obtenerFijas()` | `GET /fijas?activa=true` + Bearer | (personal) Sólo las activas: dar de baja una fija es lógico |
+| `crearFijaApi(nueva)` / `darDeBajaFijaApi(id)` | `POST /fijas` / `DELETE /fijas/:id` + Bearer | (administrador) Errores típicos: `FIJA_SUPERPUESTA`, `CONFLICTO_CON_RESERVAS` |
+| `cambiarPrecioApi(espacioId, precio)` | `PATCH /espacios/:id` + Bearer | (administrador) Devuelve el `Espacio` actualizado |
 | `registrarIngresoApi(codigoQr, espacioId)` | `POST /ingresos` + Bearer | Lanza `ErrorDeApi` con el mensaje de la API; devuelve la `Reserva` ya `cumplida` |
 
 Detalles de implementación que conviene saber explicar:
@@ -228,11 +237,11 @@ regular (sirve aunque el id del espacio tenga guiones: `esp-02`) y devuelve
 `{ espacioId, fecha: 'AAAA-MM-DD', hora: 'HH:00', inicio: Date }`, o `null` si el formato no
 es válido. `inicio` se construye con el desfase fijo `-03:00` (Argentina no tiene horario de
 verano), así que no depende de la zona horaria del teléfono. Lo usan "Mis reservas"
-(`formatearTurno`), el recordatorio local y la agenda.
+(`formatearTurno`), el recordatorio local y las pantallas del personal.
 
 También exporta dos helpers de fechas: `aFechaLocal(Date)` (AAAA-MM-DD con la fecha **local**; no usa
 `toISOString()`, que da la fecha en UTC) y `desplazarDia('AAAA-MM-DD', n)` (suma o resta días, calculando
-a mediodía para evitar saltos por cambios de horario). Los usan la grilla de disponibilidad y la agenda.
+a mediodía para evitar saltos por cambios de horario). Los usan la grilla de disponibilidad y las pantallas del personal. También exporta `dosDigitos`, los nombres de los días (`DIAS_CORTOS`, `DIAS_LARGOS`), `etiquetaDelDia('AAAA-MM-DD')` ("Hoy 19/09", "Mañana 20/09", "Sáb 19/09") y `diaDeLaSemana` (0 = domingo … 6 = sábado).
 
 ### 3.8 `servicios/archivos.ts`
 
@@ -441,9 +450,9 @@ Google Maps y en iPhone Apple Maps.
 ### 4.11 `(tabs)/_layout.tsx` — barra de pestañas y menú
 
 - `Tabs` con tres pestañas visibles (Mis Reservas, Canchas, Perfil) y dos ocultas
-  (`href: null`): `escaner`, `mapa` y `agenda`.
+  (`href: null`): `escaner`, `mapa`, `agenda`, `bloqueos`, `fijas` y `precios`.
 - Cabecera común: título "Deportes Villaguay", ícono ☰ a la izquierda (abre un `Modal` con la
-  opciones "Mapa de Complejos" y, sólo para el personal, "Agenda del día") e ícono QR a la derecha (→ `/escaner`), que **sólo aparece si el
+  opciones "Mapa de Complejos"; sólo para el personal "Agenda del día" y "Bloqueos"; sólo para el administrador "Reservas fijas" y "Precios") e ícono QR a la derecha (→ `/escaner`), que **sólo aparece si el
   usuario es encargado o administrador** (`headerRight` es `undefined` para el resto).
 - Los colores de barra y cabecera salen de `paleta`.
 
@@ -474,6 +483,63 @@ muestra "sólo para el personal" a otros roles (`esPersonal`); la API además re
 
 > La habilitación de la pantalla usa el reloj del teléfono; la API usa el suyo. Si se prueba la
 > API con `RELOJ_FIJO`, los dos relojes pueden no coincidir.
+
+### 4.13 Bloqueos — `(tabs)/bloqueos.tsx` (personal)
+
+Cierra turnos por lluvia, mantenimiento, etc. (PRD §6). Encargado y administrador; otros roles ven
+"sólo para el personal".
+
+- **Lista:** `obtenerBloqueos(hoy)` + `obtenerEspacios()`; ordena por fecha y hora. Cada tarjeta
+  muestra cancha, "Mañana 04/11 · Todo el día" o "10:00 a 12:00" y el motivo, con un tacho para
+  quitarlo (confirmación; aclara que las reservas ya canceladas **no** se restauran).
+- **Formulario (`FormularioBloqueo`, un `Modal`):** (1) `ListaEspacios` de varias opciones, agrupada
+  por complejo con el atajo "Todas" (útil para suspender todo un predio por lluvia); (2)
+  `SelectorDia` (no permite días pasados); (3) interruptor **Todo el día**, o `Paso` de Desde y
+  Hasta (inicio 08–23, fin hasta 24; el fin siempre queda después del inicio); (4) **motivo**
+  obligatorio (hasta 200 caracteres; lo ven los jugadores).
+- **Aviso previo de reservas afectadas:** al cambiar el día, el formulario pide
+  `obtenerReservasDelDia(fecha)` (con un contador `pedidoActual` que descarta respuestas viejas) y
+  calcula `afectadas` en el cliente: reservas `confirmada` de los espacios elegidos y, si no es
+  todo el día, con `inicio <= hora < fin`. Muestra "⚠️ N reservas confirmadas se van a cancelar y
+  sus dueños recibirán un aviso" y lo repite en la alerta de confirmación. Es sólo informativo: la
+  cancelación real la hace el servidor (en una transacción) y el aviso push sale después de
+  confirmarla ([05](05-notificaciones-push.md)).
+- **Errores:** `MOTIVO_REQUERIDO`, `FECHA_PASADA`, `ESPACIO_NO_ENCONTRADO` se muestran con el
+  mensaje de la API.
+- **Límite:** un bloqueo cubre un solo día; para varios días hay que crear uno por día.
+
+### 4.14 Reservas fijas — `(tabs)/fijas.tsx` (administrador)
+
+Turnos que se repiten cada semana (clubes, escuelitas). Sólo administrador (D6).
+
+- **Lista:** `obtenerFijas()` (las activas) con titular, cancha, "Martes · 21:00 a 22:00" y la
+  vigencia ("Desde 03/09/2026 · sin fecha de fin"). El tacho **da de baja** (lógica: el horario
+  deja de estar ocupado y vuelve a poder reservarse).
+- **Formulario (`FormularioFija`):** espacio (`ListaEspacios` de opción única), titular (hasta 120
+  caracteres), día de la semana (siete botones), horario (`Paso`), vigencia **desde**
+  (`SelectorDia`, desde hoy) y **hasta** (apagando "Sin fecha de fin"; nunca antes de "desde").
+  Por defecto el día es el de hoy.
+- **Errores de la API** que se muestran tal cual: `FIJA_SUPERPUESTA` ("Ya hay una reserva fija en
+  ese horario.") y `CONFLICTO_CON_RESERVAS` (hay reservas futuras en esos turnos: las resuelve el
+  administrador a mano, D4).
+- **Límite:** no se pueden editar (la API tiene `PATCH /fijas/:id`, la app no lo usa).
+
+### 4.15 Precios — `(tabs)/precios.tsx` (administrador)
+
+Lista de espacios (por complejo) con "$9.500/h". Al tocar uno se abre un cuadro con un teclado
+numérico (`number-pad`, sólo dígitos); valida entero entre 1 y 100.000.000 (los mismos límites que la
+API) y llama a `cambiarPrecioApi`. Al guardar reemplaza el precio en la lista. Como la reserva no
+guarda precio (D5), el nuevo valor rige para todas las reservas, también las ya hechas.
+
+### 4.16 `componentes/personal.tsx`
+
+Piezas de formulario compartidas por bloqueos y reservas fijas, todas con los colores del tema:
+
+| Componente | Qué hace |
+|---|---|
+| `SelectorDia({ fecha, minimo, onCambiar })` | ‹ Hoy 03/11 ›: elige un día (`desplazarDia`); `minimo` impide ir hacia atrás |
+| `Paso({ valor, min, max, onCambiar, formato })` | − 14:00 +: sube o baja un número dentro de un rango |
+| `ListaEspacios({ espacios, seleccionados, onCambiar, unico })` | Espacios agrupados por complejo; casillas (varios, con "Todas") o círculos (uno) |
 
 ## 5. Convenciones del código de la app
 

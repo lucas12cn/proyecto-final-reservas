@@ -67,9 +67,12 @@ Preparación: API con datos de demo (`pnpm db:reiniciar`), `NOTIFICACIONES=expo`
 4. **Sin señal:** modo avión → Mis Reservas muestra el cartel y el QR guardado.
 5. **Doble reserva:** con el segundo teléfono, intentar el mismo turno → "Ese turno ya fue
    reservado." con el botón *Ver otros turnos*.
-6. **Notificación:** con Swagger, loguearse como encargado y `POST /bloqueos` sobre un turno
-   reservado por el teléfono → llega "Reserva cancelada" → tocar → abre Mis Reservas.
-7. **Escáner y agenda:** ingresar como encargado (`marcelo@villaguay.demo.ar`), abrir el escáner (ícono
+6. **Notificación:** en otro teléfono, ingresar como encargado (`marcelo@villaguay.demo.ar`) →
+   menú ☰ → **Bloqueos** → Nuevo → elegir el espacio y el día del turno reservado por el primer
+   teléfono, apagar "Todo el día" y fijar el tramo, escribir el motivo (la app avisa "1 reserva
+   confirmada se va a cancelar") → Bloquear → llega "Reserva cancelada" al primer teléfono →
+   tocar → abre Mis Reservas.
+7. **Escáner, agenda y bloqueos:** ingresar como encargado (`marcelo@villaguay.demo.ar`), abrir el escáner (ícono
    QR, huella) y escanear el QR de la reserva del otro teléfono → "¡Ingreso autorizado!".
    Escanearlo de nuevo → "Ingreso rechazado" (ya ingresó).
 
@@ -89,8 +92,9 @@ privadas y alquiler de elementos: el PRD los excluye de la primera versión. La 
 precio pero no cobra.
 
 **¿Qué requisitos del PRD no pudieron cumplir?** Hay que responder con la tabla de
-[08 §3](08-estado-actual-y-deuda-tecnica.md): las pantallas del personal para bloqueos,
-reservas fijas y precio (la API ya los soporta) y el build de producción con EAS. Y explicar cómo se cerrarían.
+[08 §3](08-estado-actual-y-deuda-tecnica.md): quedan límites menores (no se editan las reservas
+fijas y un bloqueo cubre un solo día) y el build de producción con EAS, que depende de las cuentas
+del grupo. Y explicar cómo se cerrarían.
 
 **¿Cómo se organizó el trabajo?** (Completar con el reparto real.) La secuencia técnica fue:
 base y navegación → catálogo → disponibilidad y reserva → sesión → Mis reservas y offline →
@@ -192,10 +196,16 @@ app la programa en el teléfono con `scheduleNotificationAsync` (disparador por 
 2 h, identificador `recordatorio-<reservaId>`). No necesita servidor ni señal. Se cancela al
 cancelar la reserva o cerrar sesión y se reconcilia cada vez que se cargan "Mis reservas".
 
-**¿Qué puede hacer el personal en la app?** Escanear el QR para registrar el ingreso, y en la
-**Agenda del día** ver las reservas de cada día, ver el contacto del jugador y marcar "no se
-presentó" (desde 15 minutos después del inicio). Los bloqueos, las reservas fijas y el precio
-están en la API pero todavía no tienen pantalla.
+**¿Qué puede hacer el personal en la app?** El **encargado** escanea el QR para registrar el
+ingreso y, desde el menú ☰, usa la **Agenda del día** (reservas, contacto, marcar ausentes) y
+**Bloqueos** (cerrar turnos por lluvia o mantenimiento). El **administrador** además maneja las
+**reservas fijas** y los **precios**. La interfaz limita cada pantalla por rol y la API vuelve a
+validarlo.
+
+**¿Qué pasa cuando el encargado bloquea un turno con reservas?** Antes de confirmar, la app
+consulta las reservas del día y avisa cuántas se van a cancelar. Al confirmar, la API crea el
+bloqueo, cancela esas reservas (sin contarlas como cancelación tardía) y manda una push con el
+motivo a cada dueño. Quitar el bloqueo después libera los turnos pero **no** revive las reservas.
 
 **¿Cómo funciona el marcado de ausentes?** `POST /reservas/:id/ausente`: sólo para una reserva
 `confirmada` y desde 15 minutos después del inicio; queda `ausente`, suma 1 a las `ausencias` del
@@ -273,9 +283,11 @@ mindmap
       Tandas de 100 a Expo
       DeviceNotRegistered
       Toque lleva a la pantalla
+    Personal
+      Agenda y ausentes
+      Bloqueos con aviso previo
+      Fijas y precios (admin)
     Pendiente
-      Ingreso real
-      Recordatorio 2 h
-      Pantallas de personal
-      EAS
+      Build EAS y claves
+      Tests de la app
 ```
