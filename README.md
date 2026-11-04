@@ -242,7 +242,15 @@ siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
 | `npm run android` / `npm run ios` | Build nativo local (requiere Android Studio / Xcode) |
 | `npx expo config --type introspect` | Muestra permisos y `Info.plist`/manifiesto resultantes (sirve para revisar `app.json`) |
 | `npm run lint` | Lint de Expo |
-| `npx tsc --noEmit` | Chequeo de tipos |
+| `npx tsc --noEmit` | Chequeo de tipos (incluye las pruebas) |
+| `npm test` | **153 pruebas automáticas** (≈ 8 s). `npm run test:watch` las repite al guardar |
+
+### Integración continua
+
+`.github/workflows/app.yml` (tipos, pruebas y configuración de Expo) y `.github/workflows/api.yml`
+(el CI de la API) corren en cada *push* y *pull request*. Exigen los lockfiles al día
+(`package-lock.json` en `my-app/`, `pnpm-lock.yaml` en la API): tras cambiar dependencias, corré
+`npm install` / `pnpm install` y commiteá el lockfile.
 
 ## 7. Problemas frecuentes
 
@@ -257,7 +265,7 @@ siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
 | No llegan las push | `NOTIFICACIONES=expo`, teléfono real, permiso concedido y, en Android, development build |
 | El mapa no se dibuja | En Expo Go: revisá la conexión y el permiso de ubicación. En un **build de Android**: falta la clave `GOOGLE_MAPS_API_KEY` (ver §5.4) |
 | El build de `preview`/`production` no se conecta a la API | La URL de `eas.json` debe ser `https://` y apuntar a la API publicada |
-| `pnpm install --frozen-lockfile` falla | `pnpm-lock.yaml` desincronizado: correr `pnpm install` y commitear el lockfile |
+| `npm ci` o `pnpm install --frozen-lockfile` falla (también en el CI) | Lockfile desincronizado con `package.json`: correr `npm install` (app) o `pnpm install` (API) y commitear el lockfile |
 
 ## 8. Documentación para desarrolladores
 

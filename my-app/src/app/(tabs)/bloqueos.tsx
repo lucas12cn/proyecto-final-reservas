@@ -11,7 +11,8 @@ import { useAuth } from '../../contexto/AuthContext';
 import {
   obtenerBloqueos, crearBloqueosApi, quitarBloqueoApi, obtenerEspacios, obtenerReservasDelDia,
 } from '../../servicios/reservas';
-import { aFechaLocal, dosDigitos, etiquetaDelDia, leerTurnoId } from '../../servicios/turnos';
+import { aFechaLocal, dosDigitos, etiquetaDelDia } from '../../servicios/turnos';
+import { reservasAfectadas } from '../../servicios/bloqueos';
 import { mensajeDe } from '../../servicios/errores';
 import { ListaEspacios, Paso, SelectorDia } from '../../componentes/personal';
 import { Espacio, Reserva } from '../../tipos';
@@ -174,14 +175,7 @@ function FormularioBloqueo({ visible, espacios, onCerrar, onCreado }: {
     if (fin <= h) setFin(h + 1); // el fin siempre queda después del inicio
   };
 
-  const afectadas = (reservasDelDia ?? []).filter((r) => {
-    if (r.estado !== 'confirmada' || !elegidos.includes(r.espacioId)) return false;
-    if (todoElDia) return true;
-    const turno = leerTurnoId(r.turnoId);
-    if (!turno) return false;
-    const h = parseInt(turno.hora, 10);
-    return h >= inicio && h < fin;
-  });
+  const afectadas = reservasAfectadas(reservasDelDia ?? [], elegidos, { todoElDia, inicio, fin });
 
   const enviar = () => {
     if (elegidos.length === 0) return Alert.alert('Falta un dato', 'Elegí al menos un espacio.');

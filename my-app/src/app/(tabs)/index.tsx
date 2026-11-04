@@ -8,7 +8,7 @@ import { useTema } from '../../hooks/use-theme';
 import { useAuth } from '../../contexto/AuthContext';
 import { obtenerMisReservas, cancelarReserva, obtenerEspacios } from '../../servicios/reservas';
 import { cancelarRecordatorio, sincronizarRecordatorios } from '../../servicios/notificaciones';
-import { leerTurnoId } from '../../servicios/turnos';
+import { leerTurnoId, plazoDeCancelacion } from '../../servicios/turnos';
 
 export default function MisReservasScreen() {
   const { paleta } = useTema();
@@ -131,24 +131,6 @@ export default function MisReservasScreen() {
         }
       ]
     );
-  };
-
-  const dosDigitos = (n: number) => String(n).padStart(2, '0');
-
-  // Plazo para cancelar sin aviso, calculado desde `cancelableHasta` (lo entrega la API).
-  const plazoDeCancelacion = (cancelableHasta?: string) => {
-    const limite = cancelableHasta ? new Date(cancelableHasta) : null;
-    if (!limite || Number.isNaN(limite.getTime())) return { vencido: false, texto: '' };
-
-    const ahora = new Date();
-    if (limite.getTime() <= ahora.getTime()) {
-      return { vencido: true, texto: 'Ya pasó el plazo para cancelar.\nAvisale al encargado.' };
-    }
-    const hora = `${dosDigitos(limite.getHours())}:${dosDigitos(limite.getMinutes())}`;
-    const dia = limite.toDateString() === ahora.toDateString()
-      ? 'de hoy'
-      : `del ${dosDigitos(limite.getDate())}/${dosDigitos(limite.getMonth() + 1)}`;
-    return { vencido: false, texto: `Se puede cancelar sin aviso\nhasta las ${hora} ${dia}` };
   };
 
   // Fecha (AAAA-MM-DD) y hora (HH:00) del turno, desarmando su id (ver servicios/turnos.ts)

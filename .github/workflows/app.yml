@@ -1,0 +1,31 @@
+# CI de la app móvil (my-app): tipos, pruebas automáticas y configuración de Expo.
+name: CI de la app
+
+on:
+  push:
+    branches: [main]
+    paths: ['my-app/**', '.github/workflows/app.yml']
+  pull_request:
+    paths: ['my-app/**', '.github/workflows/app.yml']
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: my-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: my-app/package-lock.json
+      # `npm ci` exige que package-lock.json esté al día: si falla, correr `npm install` y commitearlo
+      - run: npm ci
+      - name: Tipos (incluye las pruebas)
+        run: npx tsc --noEmit
+      - name: Pruebas automáticas
+        run: npm test -- --ci
+      - name: Configuración de Expo (permisos, plugins, app.config.js)
+        run: npx expo config --type introspect > /dev/null

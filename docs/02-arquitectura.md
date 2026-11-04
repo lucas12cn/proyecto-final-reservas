@@ -55,6 +55,10 @@ Dependencias **sin uso real** que se conservan a propósito: `expo-sensors` (el 
 [08](08-estado-actual-y-deuda-tecnica.md) G-07) y las que Expo agrega por defecto. Las demás
 (`axios`, `zod`, `react-hook-form`…) se quitaron: ver [04 §7](04-app-movil.md).
 
+**Pruebas de la app:** Jest 29 con el preset `jest-expo`, React Native Testing Library v14 (con el
+paquete `test-renderer`) y `@types/jest`. Configuración en `jest.config.js`; las pruebas están en
+`my-app/__tests__/` (ver [07 §4](07-pruebas-y-calidad.md)).
+
 ### 2.2 API (`api-reservas-deportivas/`)
 
 | Capa | Tecnología | Versión | Por qué |
@@ -70,7 +74,7 @@ Dependencias **sin uso real** que se conservan a propósito: `expo-sensors` (el 
 | Fechas | `date-fns` + `@date-fns/tz` | — | Hora de Argentina (UTC−3) |
 | Archivos | disco local o S3 (`@aws-sdk/client-s3`) | — | Intercambiable (AWS, Supabase, R2, B2…) |
 | Tests | Vitest + Supertest | 4.x | Unitarios y e2e |
-| Calidad | oxlint, prettier, GitHub Actions | — | `pnpm verificar` |
+| Calidad | oxlint, prettier, GitHub Actions (`.github/workflows/api.yml`) | — | `pnpm verificar` |
 | Contenedores | Docker + Compose | — | `docker compose up` |
 
 ## 3. Arquitectura de la API

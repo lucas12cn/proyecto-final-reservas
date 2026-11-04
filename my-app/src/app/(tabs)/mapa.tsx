@@ -5,9 +5,9 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { obtenerEspacios } from '../../servicios/reservas';
+import { distanciaEnKm, idDelMasCercano, textoDistancia, Punto } from '../../servicios/geo';
 import { useTema } from '../../hooks/use-theme';
 
-type Punto = { latitude: number; longitude: number };
 type Complejo = { id: string; nombre: string; latitud: number; longitud: number; canchas: string[] };
 
 // Vista inicial si todavía no hay complejos (centro de Villaguay)
@@ -17,20 +17,6 @@ const REGION_VILLAGUAY = {
   latitudeDelta: 0.06,
   longitudeDelta: 0.06,
 };
-
-// Distancia en km entre dos puntos (fórmula de Haversine)
-const distanciaEnKm = (a: Punto, b: Punto) => {
-  const aRadianes = (grados: number) => (grados * Math.PI) / 180;
-  const dLat = aRadianes(b.latitude - a.latitude);
-  const dLng = aRadianes(b.longitude - a.longitude);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(aRadianes(a.latitude)) * Math.cos(aRadianes(b.latitude)) * Math.sin(dLng / 2) ** 2;
-  return 6371 * 2 * Math.asin(Math.sqrt(h));
-};
-
-const textoDistancia = (km: number) =>
-  km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1).replace('.', ',')} km`;
 
 export default function MapaScreen() {
   const { paleta, esOscuro } = useTema();
@@ -110,16 +96,10 @@ export default function MapaScreen() {
   }, [mapaListo, complejos]);
 
   // El complejo más cercano al usuario (PRD: "saber qué complejo tiene más cerca")
-  const masCercanoId = useMemo(() => {
-    if (!ubicacion || complejos.length === 0) return null;
-    let mejor = complejos[0];
-    let mejorKm = distanciaEnKm(ubicacion, { latitude: mejor.latitud, longitude: mejor.longitud });
-    for (const c of complejos.slice(1)) {
-      const km = distanciaEnKm(ubicacion, { latitude: c.latitud, longitude: c.longitud });
-      if (km < mejorKm) { mejor = c; mejorKm = km; }
-    }
-    return mejor.id;
-  }, [ubicacion, complejos]);
+  const masCercanoId = useMemo(
+    () => idDelMasCercano(ubicacion, complejos),
+    [ubicacion, complejos]
+  );
 
   const comoLlegar = (c: Complejo) => {
     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${c.latitud},${c.longitud}`);

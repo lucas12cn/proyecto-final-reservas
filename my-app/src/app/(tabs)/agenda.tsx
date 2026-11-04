@@ -5,11 +5,10 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTema } from '../../hooks/use-theme';
 import { useAuth } from '../../contexto/AuthContext';
 import { obtenerReservasDelDia, obtenerEspacios, marcarAusenteApi, obtenerUsuarioApi } from '../../servicios/reservas';
-import { aFechaLocal, desplazarDia, etiquetaDelDia, leerTurnoId } from '../../servicios/turnos';
+import { aFechaLocal, desplazarDia, etiquetaDelDia, habilitadaParaAusenteDesde, leerTurnoId } from '../../servicios/turnos';
 import { mensajeDe } from '../../servicios/errores';
 import { Reserva, Usuario } from '../../tipos';
 
-const MINUTOS_PARA_AUSENTE = 15; // regla D10: se puede marcar desde 15 minutos después del inicio
 const dos = (n: number) => String(n).padStart(2, '0');
 const horaLocal = (fecha: Date) => `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
 
@@ -76,12 +75,6 @@ export default function AgendaScreen() {
     }
   };
 
-  // Cuándo se habilita "No se presentó" para una reserva (inicio + 15 min), o null si el id no sirve
-  const habilitadaDesde = (reserva: Reserva): Date | null => {
-    const turno = leerTurnoId(reserva.turnoId);
-    return turno ? new Date(turno.inicio.getTime() + MINUTOS_PARA_AUSENTE * 60 * 1000) : null;
-  };
-
   const marcarAusente = (reserva: Reserva) => {
     const turno = leerTurnoId(reserva.turnoId);
     Alert.alert(
@@ -129,7 +122,7 @@ export default function AgendaScreen() {
     const turno = leerTurnoId(item.turnoId);
     const horaFin = turno ? `${dos(parseInt(turno.hora, 10) + 1)}:00` : '';
     const contacto = contactos[item.usuarioId];
-    const desde = habilitadaDesde(item);
+    const desde = habilitadaParaAusenteDesde(item.turnoId);
     const puedeMarcar = !!desde && desde.getTime() <= Date.now();
 
     const chip =

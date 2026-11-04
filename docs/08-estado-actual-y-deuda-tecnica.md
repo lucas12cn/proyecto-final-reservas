@@ -226,7 +226,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | D-10 | ✅ Dependencias sin uso | Resuelto: se quitaron `axios`, `zod`, `react-hook-form`, `@hookform/resolvers`, `@expo/ui`, `expo-glass-effect`, `expo-status-bar`, `expo-symbols` y el `package.json` de la raíz. Se conserva `expo-sensors` (G-07) | — |
 | D-11 | ✅ Pantalla `estado-cancha.tsx` huérfana | Resuelto: se eliminó | — |
 | D-12 | Ruta `/` ambigua | `app/index.tsx` y `app/(tabs)/index.tsx` | S |
-| D-13 | Sin tests de la app | Ver [07](07-pruebas-y-calidad.md) | L |
+| D-13 | ✅ Sin tests de la app | Resuelto en lo esencial: **153 pruebas automáticas** (lógica, servicios, sesión, notificaciones, caché, componentes) y CI. Faltan las pruebas de render de pantallas completas y de navegación (ver [07 §4.6](07-pruebas-y-calidad.md)) | — |
 | D-14 | Lockfile de la API desincronizado | `pnpm install` y commitear `pnpm-lock.yaml` (el CI usa `--frozen-lockfile`) | S |
 | D-15 | `http://` en claro | Aceptable en desarrollo; para producción usar `https://` (Render) | — |
 | D-16 | ✅ `Total a pagar` | Resuelto: ahora dice "Precio del turno" | — |
@@ -236,7 +236,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 
 ## 5. Plan de cierre recomendado (orden sugerido)
 
-**Avance:** las prioridades **1 a 12 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). Quedan los pendientes menores: D-03, D-04, D-05, D-07, D-12, D-13, D-17, D-18 y D-19.
+**Avance:** las prioridades **1 a 12 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). Quedan los pendientes menores: D-03, D-04, D-05, D-07, D-12, D-17, D-18 y D-19 (y, de D-13, las pruebas de pantallas completas).
 
 | Prioridad | Tarea | Resuelve |
 |---|---|---|

@@ -61,3 +61,30 @@ export const diaDeLaSemana = (fecha: string): number => {
   const [anio, mes, dia] = fecha.split('-').map(Number);
   return new Date(anio, mes - 1, dia, 12).getDay();
 };
+
+/**
+ * Plazo para cancelar sin aviso, calculado desde `cancelableHasta` (lo entrega la API).
+ * `vencido` indica que ya pasó; `texto` es el aviso listo para mostrar.
+ */
+export const plazoDeCancelacion = (cancelableHasta?: string, ahora: Date = new Date()) => {
+  const limite = cancelableHasta ? new Date(cancelableHasta) : null;
+  if (!limite || Number.isNaN(limite.getTime())) return { vencido: false, texto: '' };
+
+  if (limite.getTime() <= ahora.getTime()) {
+    return { vencido: true, texto: 'Ya pasó el plazo para cancelar.\nAvisale al encargado.' };
+  }
+  const hora = `${dosDigitos(limite.getHours())}:${dosDigitos(limite.getMinutes())}`;
+  const dia = limite.toDateString() === ahora.toDateString()
+    ? 'de hoy'
+    : `del ${dosDigitos(limite.getDate())}/${dosDigitos(limite.getMonth() + 1)}`;
+  return { vencido: false, texto: `Se puede cancelar sin aviso\nhasta las ${hora} ${dia}` };
+};
+
+/** Minutos que deben pasar desde el inicio del turno para poder marcar "no se presentó" (D10). */
+export const MINUTOS_PARA_AUSENTE = 15;
+
+/** Momento desde el cual se puede marcar ausente la reserva de ese turno, o null si el id no sirve. */
+export const habilitadaParaAusenteDesde = (turnoId: string): Date | null => {
+  const turno = leerTurnoId(turnoId);
+  return turno ? new Date(turno.inicio.getTime() + MINUTOS_PARA_AUSENTE * 60 * 1000) : null;
+};

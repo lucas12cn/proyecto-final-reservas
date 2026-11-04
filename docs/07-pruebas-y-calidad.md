@@ -9,7 +9,8 @@
 | API · notificaciones | Alta/baja de tokens y envío a un Expo falso | Vitest | 25 tests | `pnpm test:notificaciones` |
 | API · matriz | Los e2e contra PostgreSQL, MySQL y MariaDB | Docker / CI | — | `pnpm test:e2e:matriz` |
 | API · calidad | Tipos, lint, formato | `tsc`, oxlint, prettier | — | `pnpm verificar` |
-| App | **No hay tests automáticos** | — | 0 | Plan manual (§4) |
+| App · automáticas | Lógica de negocio, servicios contra una API simulada, sesión, notificaciones, caché y componentes de formulario | Jest 29 + `jest-expo` + Testing Library v14 | **153 pruebas en 12 archivos** (≈ 8 s) | `npm test` (en `my-app/`) |
+| App · manuales | Pantallas completas, navegación, cámara, mapa, push en un teléfono real | Personas | 70 casos | Plan manual (§5) |
 
 > Los números se midieron al correr la suite durante la elaboración de esta documentación
 > (con SQLite). Pueden variar si se agregan tests.
@@ -52,26 +53,112 @@
 - **oxlint** con `--deny-warnings` (un warning rompe `pnpm lint`; un `import` sin usar
   alcanza).
 - **prettier** para el formato de la API.
-- **GitHub Actions** (`.github/workflows/ci.yml`), tres trabajos:
-  1. `verificar`: `pnpm install --frozen-lockfile` + `pnpm verificar`, en dos zonas horarias.
-  2. `matriz`: e2e contra PostgreSQL/MySQL/MariaDB y S3Proxy.
-  3. `docker`: `scripts/test-docker.mjs` (levanta la imagen y prueba `/salud`).
-- ⚠️ `--frozen-lockfile` falla si `pnpm-lock.yaml` no coincide con `package.json`. Tras tocar
-  dependencias hay que correr `pnpm install` y **commitear el lockfile**.
+- **GitHub Actions**, en la carpeta `.github/workflows/` de la **raíz** del repositorio:
+  - `api.yml` — tres trabajos: (1) `verificar`: `pnpm install --frozen-lockfile` + `pnpm verificar`,
+    en dos zonas horarias; (2) `matriz`: e2e contra PostgreSQL/MySQL/MariaDB y S3Proxy; (3)
+    `docker`: `scripts/test-docker.mjs` (levanta la imagen y prueba `/salud`).
+  - `app.yml` — `npm ci`, `npx tsc --noEmit` (incluye las pruebas), `npm test -- --ci` y
+    `npx expo config --type introspect` (valida `app.json`/`app.config.js`).
+- ⚠️ **GitHub sólo ejecuta los workflows de la raíz.** La cátedra entregó el CI de la API en
+  `api-reservas-deportivas/.github/workflows/ci.yml`, pensado para un repositorio que contenga sólo
+  la API; en este monorepo **nunca se ejecutaba**. `api.yml` es ese mismo CI adaptado
+  (`working-directory`, rutas de `.nvmrc`, lockfile y `package.json`). Se puede borrar el original.
+  Los workflows nuevos **no se pudieron probar en GitHub** (sí se validó su sintaxis y se corrieron
+  localmente los pasos de la app).
+- ⚠️ `--frozen-lockfile` (pnpm) y `npm ci` fallan si el lockfile no coincide con `package.json`.
+  Tras tocar dependencias hay que correr `pnpm install` / `npm install` y **commitear el lockfile**
+  (`pnpm-lock.yaml` de la API está desactualizado: D-14).
 
-## 4. App: plan de pruebas manuales
+## 4. App: pruebas automáticas
 
-No hay tests automáticos de la app. Este plan cubre los flujos del PRD con los datos de demo.
+### 4.1 Cómo correrlas
+
+```bash
+cd my-app
+npm test               # todas (≈ 8 s)
+npm run test:watch     # vuelve a correr al guardar
+npx jest __tests__/turnos.test.ts      # un solo archivo
+npx jest --coverage --collectCoverageFrom='src/servicios/**/*.ts'   # cobertura
+```
+
+### 4.2 Cómo están armadas
+
+| Pieza | Detalle |
+|---|---|
+| `jest.config.js` | Preset `jest-expo`; busca `__tests__/**/*.test.{ts,tsx}` (fuera de `src/app`, para que Expo Router no las tome por rutas) |
+| `jest.global-setup.js` | Fija `TZ=America/Argentina/Buenos_Aires`: las pruebas corren siempre en hora argentina. Sin esto, en una computadora o CI en UTC **no se detecta** el error de la grilla de noche (en UTC la fecha local y la UTC coinciden) |
+| `jest.setup.js` | Reemplaza los íconos (fuente nativa) por un texto `icono:<nombre>` |
+| `tsconfig.json` → `"types": ["jest"]` | TypeScript 6 ya no incluye solo los tipos de `@types/*`: hay que declararlos para que `tsc` entienda `describe`, `expect`, `jest` |
+| Simulaciones (`jest.mock`) | `expo-network`, `expo-secure-store` (en memoria), `expo-notifications`, `expo-device`, `expo-constants`, `expo-file-system` (clases `File`/`Paths` falsas), `expo-sqlite` (tablas en memoria), `expo-router` y `fetch` |
+| Testing Library v14 | `render`, `renderHook` y `fireEvent` son **asíncronos** (`await render(...)`); usa el paquete `test-renderer` |
+
+### 4.3 Qué cubre cada archivo
+
+| Archivo | Pruebas | Qué comprueba |
+|---|---|---|
+| `turnos.test.ts` | 16 | Desarmar el id de turno (inicio en UTC-3, ids con guiones, ids inválidos); `aFechaLocal` usa la fecha **local**; `desplazarDia` cruzando mes/año/bisiesto; `etiquetaDelDia`; `plazoDeCancelacion` (hoy, otro día, vencido, justo en el límite, dato inválido); hora desde la que se puede marcar ausente |
+| `errores.test.ts` | 12 | El mensaje de la API se muestra (nunca `[object Object]`); cuerpo ilegible; `NO_AUTENTICADO` avisa la sesión vencida y los demás errores no; el aviso se puede cancelar; `SIN_SESION` |
+| `geo.test.ts` | 8 | Distancia (Haversine), formato "850 m"/"2,3 km", complejo más cercano |
+| `bloqueos.test.ts` | 7 | Reservas que cancelaría un bloqueo: día entero, tramo `[inicio, fin)`, varios espacios, estados no confirmados, sin espacios |
+| `archivos.test.ts` | 9 | Nombre de caché independiente de la IP, extensión, hash; descargar sólo si falta; borrar el archivo incompleto si la descarga falla |
+| `reservas.test.ts` | 36 | Cada servicio con `fetch` simulado: cuerpo y cabeceras enviados, errores de la API, **catálogo con respaldo sin conexión**, paginación de listados (varias páginas, sin bucle infinito), bloqueo de día entero **sin** `inicio`/`fin`, fijas, precios, ausentes, ingreso, permisos del encargado |
+| `auth.test.ts` | 12 | Ingreso, registro, perfil, alta y baja del dispositivo (token codificado en la URL), todo sin sesión |
+| `db.test.ts` | 6 | Caché del catálogo: se abre al primer uso, ida y vuelta por JSON, **guardar reemplaza la lista completa**, deportes aparte |
+| `config.test.ts` | 4 | `API_URL`: variable de entorno, barra final, valor por defecto, variable vacía |
+| `notificaciones.test.ts` | 23 | Recordatorio local (2 h antes, id por reserva, cancela antes de reprogramar, no programa si no está confirmada / faltan < 2 h / sin permiso / turno ilegible, nunca lanza); registro del token (`projectId`, canal de Android, emulador, permiso denegado); baja; manejador con la app abierta |
+| `AuthContext.test.tsx` | 11 | Arranque con y sin sesión; login/registro; **logout da de baja el teléfono antes de borrar la sesión**; sesión vencida (un solo aviso aunque fallen varios pedidos; no se dispara durante un logout) |
+| `componentes.test.tsx` | 9 | `Paso`, `SelectorDia` y `ListaEspacios` (límites, "Todas"/"Ninguna", modo único) |
+
+### 4.4 ¿Las pruebas realmente detectan errores?
+
+Una prueba que nunca falla no sirve. Para comprobarlo se introdujeron **siete errores a
+propósito** (uno por vez, restaurando después) y se verificó que alguna prueba se rompiera:
+
+| Error introducido | Detectado por |
+|---|---|
+| Huso horario del turno `-03:00` → `-04:00` | `turnos` (2 pruebas) |
+| `aFechaLocal` usando `toISOString()` (el error B-02) | `turnos` — **sólo** gracias al `TZ` fijo de `jest.global-setup.js` |
+| No avisar la sesión vencida | `errores` |
+| Recordatorio 1 h antes en lugar de 2 | `notificaciones` (3 pruebas) |
+| Bloqueo de día entero que manda `inicio` y `fin` | `reservas` |
+| Fin de bloqueo inclusivo (`<` → `<=`) | `bloqueos` (3 pruebas) |
+| `logout` borra la sesión antes de dar de baja el teléfono | `AuthContext` |
+
+La primera vez la mutación de `aFechaLocal` **no** se detectaba (el entorno estaba en UTC):
+por eso las pruebas fijan la zona horaria.
+
+### 4.5 Cobertura medida
+
+Sobre `src/servicios`, `src/contexto` y `src/componentes`: **94,5 % de sentencias, 92,9 % de
+ramas**. Todos los archivos de servicios están por encima del 90 %, salvo `db.ts` (69 %: sus
+funciones de `reservas_locales` y la preferencia de complejo no las usa ninguna pantalla).
+
+### 4.6 Qué NO cubren (límites)
+
+- **Pantallas completas** (`app/**`): no hay pruebas de render de "Mis reservas", la grilla, el
+  escáner, el mapa, etc. Se prueban a mano (§5). La lógica que contenían (plazo de cancelación,
+  distancias, reservas afectadas por un bloqueo, habilitación de ausente) se extrajo a
+  `servicios/` justamente para poder probarla.
+- **Navegación** de Expo Router y el toque de una notificación (`NavegarAlTocarAviso`).
+- **Capacidades nativas reales**: cámara, ubicación, biometría, SQLite real, notificaciones en un
+  teléfono. Las pruebas usan simulaciones: confirman que el código usa bien la API de Expo, no que
+  el teléfono responda.
+- **Contrato real con la API**: `fetch` está simulado. Los pedidos se verificaron aparte contra la
+  API local (ver el cierre de la prioridad 12); no hay una prueba automática que los repita.
+
+## 5. App: plan de pruebas manuales
+
+Complementa a las pruebas automáticas (§4): cubre las pantallas, la navegación y las capacidades del teléfono con los datos de demo.
 Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en la misma red.
 
-### 4.1 Preparación
+### 5.1 Preparación
 
 | # | Paso | Resultado esperado |
 |---|---|---|
 | P1 | Abrir `http://<IP>:3000/salud` en el navegador del teléfono | `{"datos":{"estado":"ok",…}}` |
 | P2 | Poner la IP en `servicios/auth.ts` y `servicios/reservas.ts` | La app carga el catálogo |
 
-### 4.2 Casos
+### 5.2 Casos
 
 | ID | Caso | Pasos | Resultado esperado |
 |---|---|---|---|
@@ -131,7 +218,7 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | T-42 | Marcar ausente | Reserva `confirmada` cuyo turno empezó hace 15 min o más → "No se presentó" → confirmar | Pasa a "No se presentó" y, en el perfil del jugador, sube **Ausencias** en 1 |
 | T-43 | Reserva que ya ingresó | Escanear su QR y abrir la agenda | Figura "Ingresó HH:MM" y no tiene botón de ausente |
 
-### 4.3 Casos de notificaciones
+### 5.3 Casos de notificaciones
 
 | ID | Caso | Pasos | Resultado esperado |
 |---|---|---|---|
@@ -142,7 +229,7 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | N-05 | Cambio de dueño | Cerrar sesión y entrar con otra cuenta en el mismo teléfono | Los avisos llegan a la cuenta nueva, no a la anterior |
 | N-06 | Baja | Cerrar sesión | La tabla `dispositivos` ya no tiene el token |
 
-### 4.4 Prueba del build (APK `preview` o `production`)
+### 5.4 Prueba del build (APK `preview` o `production`)
 
 Con un build real, **no** con Expo Go (cambian los permisos y no se permite `http://`):
 
@@ -155,7 +242,7 @@ Con un build real, **no** con Expo Go (cambian los permisos y no se permite `htt
 | B-05 | Push | Con credenciales FCM cargadas, `POST /dispositivos/prueba` llega al teléfono |
 | B-06 | iPhone (si hay build) | Los permisos y Face ID muestran sus textos; la app no se cierra al pedirlos |
 
-### 4.5 Casos de error de red
+### 5.5 Casos de error de red
 
 Con `SIMULACION_HABILITADA=true`, enviando la cabecera `X-Simular: error-500` o
 `demora-3000` (por ejemplo desde Swagger/Postman o agregándola temporalmente al `fetch`):
@@ -166,10 +253,10 @@ Con `SIMULACION_HABILITADA=true`, enviando la cabecera `X-Simular: error-500` o
 | E-02 | `error-500` al reservar | Alerta con un mensaje de error |
 | E-03 | `demora-3000` en la grilla | Indicador de carga durante 3 s |
 
-## 5. Mejoras recomendadas de pruebas (app)
+## 6. Mejoras recomendadas de pruebas (app)
 
-- Tests unitarios (Jest + `jest-expo`) de las funciones puras: `formatearTurno`,
-  `calcularEstadoVisual`, `generarProximosDias` (con la zona horaria como parámetro),
-  `armarHtml`.
-- Tests de componentes con React Native Testing Library para `Mis Reservas` (online/offline).
-- Un test de contrato que valide las respuestas reales de la API contra `contract/schema.json`.
+- Pruebas de render de las pantallas con Testing Library (primero "Mis reservas" en línea y sin
+  conexión, la agenda y el formulario de bloqueos), simulando `expo-router`.
+- Una prueba que valide las respuestas reales de la API contra `contract/schema.json`.
+- Pruebas end-to-end en un teléfono o emulador (por ejemplo con Maestro) del flujo
+  ingresar → reservar → ver el QR.
