@@ -4,13 +4,14 @@ Documentación para **desarrolladores** (no para usuarios finales). Su objetivo 
 integrante del grupo pueda explicar el sistema completo: por qué existe, cómo se diseñó, cómo
 está hecho y dónde mirar en el código.
 
-> **Estado documentado:** repositorio `proyecto-final-reservas` (commit `3c59b52`) más la
-> integración de notificaciones push (módulo de dispositivos en la API y servicio de
-> notificaciones en la app) y la primera tanda de correcciones (manejo de errores de la API,
-> fecha local en la grilla, escáner real con control de rol, cantidad de personas, plazo de
-> cancelación real, URL de la API por variable de entorno). Lo pendiente está en
-> [08](08-estado-actual-y-deuda-tecnica.md). Todo lo que se afirma sobre el código fue verificado leyéndolo; lo
-> que no se pudo verificar (por ejemplo, comportamiento en un teléfono real) se marca como tal.
+> **Estado documentado:** versión final del trabajo. Parte del repositorio `proyecto-final-reservas`
+> (commit `3c59b52`) y suma lo que hizo el grupo: la integración de notificaciones push (módulo de
+> dispositivos en la API y servicio de notificaciones en la app), el recordatorio local, el caché sin
+> conexión, el mapa nativo, las pantallas del personal (agenda, bloqueos, reservas fijas y precios),
+> la configuración de EAS, **163 pruebas automáticas** y el CI. Todo lo que se afirma sobre el
+> código fue verificado leyéndolo y ejecutándolo; lo que no se pudo verificar (comportamiento en un
+> teléfono real, los workflows en GitHub, el build de EAS) se marca como tal. Lo pendiente está en el
+> resumen de [08](08-estado-actual-y-deuda-tecnica.md).
 
 ## 1. Cómo leer esta documentación
 

@@ -9,12 +9,10 @@ import { useTema } from '../../hooks/use-theme';
 import { useAuth } from '../../contexto/AuthContext';
 import { obtenerEspacios, cambiarPrecioApi } from '../../servicios/reservas';
 import { mensajeDe } from '../../servicios/errores';
+import { pesos } from '../../servicios/formato';
 import { Espacio } from '../../tipos';
 
 const PRECIO_MAXIMO = 100_000_000; // el mismo tope que valida la API
-
-// 9500 → "$9.500"
-const pesos = (n: number) => '$' + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
 export default function PreciosScreen() {
   const { paleta } = useTema();

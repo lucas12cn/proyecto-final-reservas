@@ -118,8 +118,11 @@ Funcionamiento:
   sistema cuando el modo es `'sistema'`.
 - `useTema()` devuelve `{ paleta, esOscuro, modoManual, cambiarTema }`. Todas las pantallas
   pintan con `paleta.*` en línea (`style={[estilos.x, { color: paleta.text }]}`).
-- **No persiste** la elección: al cerrar la app vuelve a `'sistema'`.
-- `ThemeContext` está tipado `any` (sin tipo estricto).
+- **La elección se guarda** en `expo-sqlite/kv-store` (clave `modoTema`; es el almacenamiento de
+  preferencias simples que indica el PRD). Se lee de forma **síncrona** al montar el proveedor, así
+  la app arranca ya con el tema correcto, sin un destello del otro. Un valor guardado inválido o un
+  fallo de `kv-store` se ignoran (queda en `'sistema'`) y no rompen la app.
+- `ThemeContext` está tipado `any` (sin tipo estricto; D-05).
 
 ## 3. Capa de servicios
 
@@ -226,7 +229,9 @@ la sesión se cierra sola y se vuelve al ingreso).
 
 Exporta `API_URL`: `process.env.EXPO_PUBLIC_API_URL` (sin barra final) o, si no está definida,
 `http://192.168.1.6:3000`. Todos los servicios la usan. Expo incorpora las variables
-`EXPO_PUBLIC_*` al iniciar, por eso hay que reiniciar con `npx expo start -c` al cambiarla. El
+`EXPO_PUBLIC_*` al procesar el código y **guarda ese resultado en caché**: sin `npx expo start -c`
+(o `expo export --clear`) la app sigue con el valor anterior. Se comprobó empaquetando la app con
+y sin `--clear`. El
 archivo `my-app/.env.example` muestra el formato; cada integrante crea su `.env.local`
 (ignorado por git).
 
@@ -251,6 +256,11 @@ URL, sin el servidor: la IP de la API cambia de red en red y no debe invalidar l
 `archivoGuardado(nombre)` devuelve la URI local si el archivo existe (sin red) y
 `guardarArchivo(url, nombre)` lo descarga con `File.downloadFileAsync`; si falla, borra el
 archivo incompleto (en Android una descarga cortada puede dejarlo) y devuelve `null`.
+
+### 3.9 `servicios/formato.ts`
+
+`pesos(monto)` formatea un importe: `9500` → `"$9.500"` (punto como separador de miles, redondea
+decimales). Lo usan la grilla de disponibilidad y la pantalla de precios.
 
 ## 4. Pantallas, una por una
 
@@ -301,7 +311,7 @@ La pantalla más compleja. Lee el `id` con `useLocalSearchParams`.
 | Carga | `useFocusEffect` → `cargarDetalle()`: `obtenerEspacioPorId`, luego `obtenerMisFavoritos` para saber si el corazón va lleno |
 | Favorito | `manejarFavorito()`: **actualización optimista** (cambia el estado y llama a `alternarFavoritoApi`; si falla, revierte y muestra `Alert`) |
 | Galería comunitaria | SQLite propia `canchas_galeria.db`, tabla `galeria(espacioId PK, fotos_json)`. `useEffect` abre/crea la base (`dbLista`); `cargarGaleriaLocal()` lee y normaliza (string → `{uri, tipo:'image'}`) |
-| "Reportar" | `reportarEstado()`: pide permiso de galería (`ImagePicker.requestMediaLibraryPermissionsAsync`), abre el selector (imágenes o videos, calidad 0,7), antepone el archivo a la lista y la guarda como JSON con `INSERT OR REPLACE`. Muestra "¡Reporte subido!" |
+| "Reportar" | `reportarEstado()`: pide permiso de galería (`ImagePicker.requestMediaLibraryPermissionsAsync`), abre el selector (imágenes o videos, calidad 0,7), antepone el archivo a la lista y la guarda como JSON con `INSERT OR REPLACE`. Muestra "Foto guardada · Quedó guardada en este teléfono." (la foto **no** se sube: la API no tiene un endpoint para asociar una foto a un espacio) |
 | Video | `ReproductorCancha` usa `useVideoPlayer` + `VideoView` (`loop`). `ReproductorMini` (silenciado) para videos de la galería |
 | Caché de medios | Si la foto principal y el video ya están guardados en el teléfono (`servicios/archivos.ts`) los usa enseguida, también sin conexión; los que faltan se descargan **en segundo plano** y, al terminar, la pantalla pasa a usar la copia local (el video muestra "Guardado offline") |
 | CTA | Botón fijo "Ver disponibilidad" → `/espacio/disponibilidad?id=` |
@@ -329,12 +339,12 @@ Puntos para tener claros:
 - **`calcularEstadoVisual(turno)`:** si el día es anterior a hoy → `'pasado'`; si es hoy y
   `horaTurno <= horaActual` → `'pasado'`; si no, usa `turno.estado`. Sólo mira la **hora**
   (no los minutos): un turno de las 14:00 pasa a "Finalizado" apenas son las 14:00.
-- **`renderBotonEstado(estado)`:** `libre` → verde "Disponible"; `reservado` y `fijo` →
-  "Ocupado" (la app **no distingue** una fija de una reserva); `mantenimiento` → ámbar;
-  `pasado` → "Finalizado".
+- **`renderBotonEstado(estado, turno)`:** `libre` → verde "Disponible · $12.000" (el **precio** del
+  turno, con `pesos()` de `servicios/formato.ts`); `reservado` → "Ocupado"; `fijo` → "Fijo" (una
+  reserva fija semanal se distingue de una común); `mantenimiento` → ámbar, con el **motivo del
+  bloqueo** debajo ("Cancha anegada"); `pasado` → "Finalizado". Es lo que muestra el wireframe del PRD.
 - **Interacción:** sólo los turnos `libre` son tocables (`disabled={estadoVisual !== 'libre'}`);
   navega a `confirmar` con `{ id, fecha, hora, turnoId }`.
-- No muestra el `motivoBloqueo` ni el precio del turno (la API los envía).
 
 ### 4.6 Confirmación — `espacio/confirmar.tsx`
 

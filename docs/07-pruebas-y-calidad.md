@@ -9,8 +9,8 @@
 | API · notificaciones | Alta/baja de tokens y envío a un Expo falso | Vitest | 25 tests | `pnpm test:notificaciones` |
 | API · matriz | Los e2e contra PostgreSQL, MySQL y MariaDB | Docker / CI | — | `pnpm test:e2e:matriz` |
 | API · calidad | Tipos, lint, formato | `tsc`, oxlint, prettier | — | `pnpm verificar` |
-| App · automáticas | Lógica de negocio, servicios contra una API simulada, sesión, notificaciones, caché y componentes de formulario | Jest 29 + `jest-expo` + Testing Library v14 | **153 pruebas en 12 archivos** (≈ 8 s) | `npm test` (en `my-app/`) |
-| App · manuales | Pantallas completas, navegación, cámara, mapa, push en un teléfono real | Personas | 70 casos | Plan manual (§5) |
+| App · automáticas | Lógica de negocio, servicios contra una API simulada, sesión, notificaciones, caché y componentes de formulario | Jest 29 + `jest-expo` + Testing Library v14 | **163 pruebas en 14 archivos** (≈ 8 s) | `npm test` (en `my-app/`) |
+| App · manuales | Pantallas completas, navegación, cámara, mapa, push en un teléfono real | Personas | 74 casos | Plan manual (§5) |
 
 > Los números se midieron al correr la suite durante la elaboración de esta documentación
 > (con SQLite). Pueden variar si se agregan tests.
@@ -107,6 +107,8 @@ npx jest --coverage --collectCoverageFrom='src/servicios/**/*.ts'   # cobertura
 | `config.test.ts` | 4 | `API_URL`: variable de entorno, barra final, valor por defecto, variable vacía |
 | `notificaciones.test.ts` | 23 | Recordatorio local (2 h antes, id por reserva, cancela antes de reprogramar, no programa si no está confirmada / faltan < 2 h / sin permiso / turno ilegible, nunca lanza); registro del token (`projectId`, canal de Android, emulador, permiso denegado); baja; manejador con la app abierta |
 | `AuthContext.test.tsx` | 11 | Arranque con y sin sesión; login/registro; **logout da de baja el teléfono antes de borrar la sesión**; sesión vencida (un solo aviso aunque fallen varios pedidos; no se dispara durante un logout) |
+| `formato.test.ts` | 3 | `pesos`: "$9.500", sin separador por debajo de mil, redondeo |
+| `tema.test.tsx` | 7 | Tema: arranca con el modo guardado (sin destello), cambiarlo lo guarda y sobrevive a "reabrir" la app, valor inválido o `kv-store` caído no rompen, claro/oscuro |
 | `componentes.test.tsx` | 9 | `Paso`, `SelectorDia` y `ListaEspacios` (límites, "Todas"/"Ninguna", modo único) |
 
 ### 4.4 ¿Las pruebas realmente detectan errores?
@@ -129,9 +131,10 @@ por eso las pruebas fijan la zona horaria.
 
 ### 4.5 Cobertura medida
 
-Sobre `src/servicios`, `src/contexto` y `src/componentes`: **94,5 % de sentencias, 92,9 % de
-ramas**. Todos los archivos de servicios están por encima del 90 %, salvo `db.ts` (69 %: sus
-funciones de `reservas_locales` y la preferencia de complejo no las usa ninguna pantalla).
+Sobre `src/servicios`, `src/contexto`, `src/componentes` y `src/providers`: **94,8 % de sentencias y
+93,2 % de ramas**. Todos los archivos superan el 90 % de sentencias, salvo `db.ts` (69 %: sus
+funciones de `reservas_locales` y la preferencia de complejo no las usa ninguna pantalla). El punto más
+flojo es `reservas.ts` en ramas (73 %): varios caminos de error de lectura.
 
 ### 4.6 Qué NO cubren (límites)
 
@@ -210,6 +213,10 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | T-32 | Recordatorio cancelado | Reservar y cancelar | No llega el recordatorio |
 | T-33 | Catálogo sin conexión | Abrir Canchas con conexión, activar modo avión y reabrir la app | La lista, los filtros y la ficha siguen disponibles |
 | T-34 | Foto y video sin conexión | Abrir una ficha con conexión (esperar unos segundos), modo avión, volver a abrirla | La foto principal y el video ("Guardado offline") se ven |
+| T-56 | Grilla: precio | Abrir la disponibilidad de un espacio | Cada turno libre dice "Disponible · $12.000" |
+| T-57 | Grilla: mantenimiento y fijo | Día con bloqueo ("Cancha anegada") y un martes con reserva fija | El bloqueo muestra su motivo; la fija dice "Fijo" (no "Ocupado") |
+| T-58 | Tema guardado | Perfil → Apariencia → Oscuro; cerrar la app del todo y abrirla | Sigue en oscuro |
+| T-59 | Foto de la ficha | Ficha → Reportar → elegir una foto | Alerta "Foto guardada · Quedó guardada en este teléfono." (no dice "subido") |
 | T-37 | Agenda (personal) | Ingresar como `marcelo@villaguay.demo.ar` → menú ☰ → Agenda del día | Lista las reservas de hoy, ordenadas por hora, con cancha y personas |
 | T-38 | Agenda sólo para personal | Ingresar como jugador → menú ☰ | No aparece "Agenda del día" |
 | T-39 | Cambiar de día | Tocar ‹ y › y el título | Cambia el día; el título vuelve a "Hoy" |

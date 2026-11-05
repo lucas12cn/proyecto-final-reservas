@@ -85,9 +85,12 @@ cp .env.example .env.local     # en Windows: copy .env.example .env.local
 ```
 
 `.env.local` lo ignora git: cada integrante usa su propia IP. Sin ese archivo la app usa
-`http://192.168.1.6:3000` (valor por defecto de `my-app/src/servicios/config.ts`). Las
-variables `EXPO_PUBLIC_*` se leen al **iniciar** Expo: si cambiás la IP, reiniciá con
-`npx expo start -c`.
+`http://192.168.1.6:3000` (valor por defecto de `my-app/src/servicios/config.ts`).
+
+> ⚠️ **Después de crear o cambiar `.env.local`, reiniciá Expo con `npx expo start -c`.** Expo
+> guarda en caché el código ya procesado y las variables `EXPO_PUBLIC_*` se incorporan al
+> procesarlo: sin `-c` la app **sigue usando la IP anterior**. (Se comprobó: sin limpiar el caché,
+> la IP nueva no entra; con `-c`, sí.)
 
 ### 3.3 Levantar la app
 
@@ -243,7 +246,7 @@ siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
 | `npx expo config --type introspect` | Muestra permisos y `Info.plist`/manifiesto resultantes (sirve para revisar `app.json`) |
 | `npm run lint` | Lint de Expo |
 | `npx tsc --noEmit` | Chequeo de tipos (incluye las pruebas) |
-| `npm test` | **153 pruebas automáticas** (≈ 8 s). `npm run test:watch` las repite al guardar |
+| `npm test` | **163 pruebas automáticas** (≈ 8 s). `npm run test:watch` las repite al guardar |
 
 ### Integración continua
 
@@ -256,7 +259,7 @@ siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
 
 | Síntoma | Causa probable y solución |
 |---|---|
-| La app muestra listas vacías o "Sin conexión a internet o red local" | `EXPO_PUBLIC_API_URL` (`.env.local`) no es la IP de tu computadora, no reiniciaste Expo con `-c`, la API está apagada o están en redes wifi distintas |
+| La app muestra listas vacías o "Sin conexión a internet o red local" | `EXPO_PUBLIC_API_URL` (`.env.local`) no es la IP de tu computadora, **no reiniciaste Expo con `-c`** (el caso más frecuente), la API está apagada o están en redes wifi distintas |
 | `El email o la contraseña no son correctos.` con `emiliano@mail.com` | La contraseña correcta es `villaguay2026` (todo en minúscula) |
 | `NO_AUTENTICADO` después de `pnpm db:reiniciar` | El usuario se borró y se recreó: cerrar sesión e ingresar de nuevo |
 | `EADDRINUSE :::3000` | Ya hay una API corriendo en el puerto 3000 |

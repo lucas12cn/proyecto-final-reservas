@@ -76,7 +76,7 @@ y las diferencias están en [08](08-estado-actual-y-deuda-tecnica.md).
 | RF-03 | Ficha del espacio: fotos, características, precio, reglas | PRD §1 | ✅ `espacio/[id].tsx` |
 | RF-04 | Video del espacio (reproducción) | PRD §1 | ✅ `expo-video` |
 | RF-05 | Mapa de complejos y "cómo llegar" | PRD §1 | ✅ mapa nativo (`react-native-maps`), tarjeta por complejo con distancia y botón "Cómo llegar" |
-| RF-06 | Grilla de un espacio por día, 7 días | PRD §2 | ✅ `espacio/disponibilidad.tsx` |
+| RF-06 | Grilla de un espacio por día, 7 días (precio en los libres, motivo del mantenimiento, fijas) | PRD §2 | ✅ `espacio/disponibilidad.tsx` |
 | RF-07 | Turno pasado no reservable | PRD §2 | ✅ (cliente y servidor) |
 | RF-08 | Reservas fijas visibles como ocupadas | PRD §2 | ✅ (resuelto por la API en el estado `fijo`) |
 | RF-09 | Reservar un turno libre | PRD §3 | ✅ con selector de cantidad de personas (1 a la capacidad) |
@@ -193,7 +193,7 @@ pantalla habla directamente con la red; todo pasa por una capa de servicios así
 | Galería | `expo-image-picker` | `espacio/[id].tsx` | ✅ (se guarda sólo en el teléfono) |
 | Ubicación y mapa | `expo-location` + `react-native-maps` | `(tabs)/mapa.tsx` | ✅ (en builds de Android requiere `GOOGLE_MAPS_API_KEY`) |
 | Notificaciones | `expo-notifications` | `servicios/notificaciones.ts`, `_layout.tsx` | ✅ push y recordatorio local |
-| Persistencia y red | `expo-sqlite`, `kv-store`, `expo-network` | `(tabs)/index.tsx`, `espacio/[id].tsx`, `servicios/db.ts`, `servicios/*` | ✅ SQLite (reservas y catálogo) y red · `kv-store` sólo en `servicios/db.ts` (sin uso real) |
+| Persistencia y red | `expo-sqlite`, `kv-store`, `expo-network` | `(tabs)/index.tsx`, `espacio/[id].tsx`, `servicios/db.ts`, `servicios/*` | ✅ SQLite (reservas y catálogo) y red · `kv-store` guarda el tema elegido (`ThemeProvider`) |
 | Seguridad | `expo-secure-store`, `expo-local-authentication` | `AuthContext`, `app/index.tsx`, `escaner.tsx` | ✅ |
 | Háptica / sensores | `expo-haptics`, `expo-sensors` | `app/index.tsx`, `escaner.tsx` | ✅ háptica · ❌ sensores sin uso |
 | Sistema de archivos | `expo-file-system` | `servicios/archivos.ts`, `espacio/[id].tsx` | ✅ copia local de foto y video (API nueva `File`/`Paths`) |

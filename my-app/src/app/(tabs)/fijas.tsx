@@ -9,7 +9,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTema } from '../../hooks/use-theme';
 import { useAuth } from '../../contexto/AuthContext';
 import { obtenerFijas, crearFijaApi, darDeBajaFijaApi, obtenerEspacios } from '../../servicios/reservas';
-import { aFechaLocal, desplazarDia, diaDeLaSemana, DIAS_CORTOS, DIAS_LARGOS, dosDigitos } from '../../servicios/turnos';
+import { aFechaLocal, diaDeLaSemana, DIAS_CORTOS, DIAS_LARGOS, dosDigitos } from '../../servicios/turnos';
 import { mensajeDe } from '../../servicios/errores';
 import { ListaEspacios, Paso, SelectorDia } from '../../componentes/personal';
 import { Espacio, ReservaFija } from '../../tipos';

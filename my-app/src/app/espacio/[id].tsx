@@ -156,7 +156,7 @@ export default function FichaEspacioScreen() {
           'INSERT OR REPLACE INTO galeria (espacioId, fotos_json) VALUES (?, ?)',
           [id as string, JSON.stringify(nuevaLista)]
         );
-        Alert.alert("¡Reporte subido!");
+        Alert.alert("Foto guardada", "Quedó guardada en este teléfono.");
       } catch (error) {
         console.error("Error guardando en galería local:", error);
         Alert.alert("Error al guardar localmente.");

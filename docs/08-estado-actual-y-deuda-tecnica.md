@@ -6,6 +6,26 @@ Este documento es **honesto a propósito**: conviene que el grupo conozca sus pu
 Todos se verificaron leyendo el código; los que dependen de un teléfono real se marcan
 *(a confirmar en dispositivo)*.
 
+## 0. Resumen del estado final
+
+| Lista | Total | ✅ Resueltos | ⚠️ Parciales / aclarados | ✋ Aceptados | ⏳ Pendientes |
+|---|---|---|---|---|---|
+| Errores (`B-xx`) | 13 | 10 (B-01 a B-07, B-09, B-10, B-11) | 1 (B-12) | 2 (B-08, B-13) | 0 |
+| Brechas del PRD (`G-xx`) | 10 | 8 (G-01 a G-06, G-08, G-10) | 2 (G-07, G-09) | 0 | 0 |
+| Deuda técnica (`D-xx`) | 19 | 8 (D-01, D-02, D-08 a D-11, D-13, D-16) | 4 (D-03, D-04, D-06, D-07) | 1 (D-15) | 6 (D-05, D-12, D-14, D-17, D-18, D-19) |
+
+**Lo que realmente queda pendiente, en orden de importancia para la entrega:**
+
+1. **G-09 · Build de producción:** hace falta `eas init`, la URL `https://` de la API en `eas.json`,
+   las credenciales de push (FCM / APNs) y la clave de Google Maps para Android. Depende de las
+   cuentas del grupo. Ver el [README §5](../README.md).
+2. **D-14 · `pnpm-lock.yaml` de la API desactualizado:** hay que correr `pnpm install` y commitearlo
+   o el CI de la API falla.
+3. **D-18 · Íconos y pantalla de inicio** de la plantilla de Expo.
+4. **G-07 · `expo-sensors`:** el PRD lo lista y no se usa.
+5. El resto es calidad interna (exceso de `any`, estilos repetidos, tres bases SQLite, la ruta
+   `/` ambigua, límites de las pantallas del personal) y no afecta lo que ve el usuario.
+
 ## 1. Lo que funciona bien (fortalezas para destacar)
 
 - **Arquitectura limpia en dos capas:** pantallas → servicios → API; tipos del PRD compartidos.
@@ -18,7 +38,10 @@ Todos se verificaron leyendo el código; los que dependen de un teléfono real s
   inválidos y navegación al tocar el aviso.
 - **Uso de muchas capacidades nativas** (cámara, ubicación, biometría, háptica, galería,
   video, SQLite, notificaciones, red) integradas en flujos con sentido.
-- **Tema claro/oscuro** y estados de carga/vacío/error en las pantallas principales.
+- **Tema claro/oscuro** (se recuerda entre sesiones) y estados de carga/vacío/error en las pantallas principales.
+- **Pantallas de administración completas** (agenda con ausentes, bloqueos con aviso previo de reservas afectadas, reservas fijas y precios), limitadas por rol en la interfaz y en la API.
+- **163 pruebas automáticas** de la app, comprobadas introduciendo errores a propósito, más las de la API; CI en la raíz del repositorio.
+- **Documentación verificada contra el código:** cada ruta y función citada existe (auditoría automática) y los pasos del README se siguieron desde una copia limpia.
 
 ## 2. Errores conocidos
 
@@ -134,13 +157,17 @@ setVideoCache(destino.uri);
   reservada "para 10".
 - **Arreglo (S):** un selector (− / +) con mínimo 1 y máximo `espacio.capacidad`.
 
-### B-08 · `calcularEstadoVisual` compara sólo la hora — **baja**
+### B-08 · `calcularEstadoVisual` compara sólo la hora — **baja** ✋ SE ACEPTA
+
+> **Decisión:** no se corrige. El comportamiento coincide con el del servidor (un turno que ya empezó no se puede reservar: `TURNO_PASADO`), y la única diferencia posible es un teléfono con la hora mal puesta; el servidor sigue siendo la fuente de verdad.
 
 - Un turno de las 14:00 pasa a "Finalizado" a las 14:00 en punto (ya empezó, el servidor
   también lo rechaza con `TURNO_PASADO`: es coherente), pero la lógica ignora los minutos y
   usa el reloj del teléfono, que puede estar desajustado. El servidor es la fuente de verdad.
 
-### B-09 · El tema elegido no se guarda — **baja**
+### B-09 · El tema elegido no se guarda — **baja** ✅ RESUELTO
+
+> **Resuelto:** `ThemeProvider` guarda el modo en `expo-sqlite/kv-store` (clave `modoTema`) y lo lee de forma síncrona al arrancar. Cubierto por `__tests__/tema.test.tsx`.
 
 - `ThemeProvider` mantiene `modoManual` sólo en memoria. **Arreglo (S):** guardarlo con
   `expo-sqlite/kv-store` (para lo que el PRD prevé) y leerlo al montar.
@@ -163,14 +190,18 @@ setVideoCache(destino.uri);
 - **Arreglo (M):** usar `servicios/db.ts` (ya escrito: `guardarEspaciosEnTelefono` /
   `leerEspaciosDelTelefono`) desde `obtenerEspacios()`: si hay red, guardar; si no, leer.
 
-### B-12 · "Reportar" no sube nada a la API — **media**
+### B-12 · "Reportar" no sube nada a la API — **media** ⚠️ ACLARADO
+
+> **Aclarado:** la foto de la ficha se guarda sólo en el teléfono porque la API **no tiene un endpoint para asociar una foto a un espacio** (`POST /archivos` sube un archivo genérico, pero nadie más lo vería). La alerta ahora dice "Foto guardada · Quedó guardada en este teléfono." en lugar de "¡Reporte subido!", que era engañoso. Quedaría como mejora de la API.
 
 - La galería de `espacio/[id].tsx` guarda en SQLite **local** y dice "¡Reporte subido!";
   la pantalla `estado-cancha.tsx` (ya eliminada) sólo mostraba un `Alert`. La API tiene `POST /archivos`
   (multipart, campo `archivo`) listo para esto.
 - **Arreglo (M):** subir con `FormData` y guardar la `url` devuelta; mostrar las URLs de todos.
 
-### B-13 · Toques del aviso "Reserva cancelada" no llevan a la reserva — **baja**
+### B-13 · Toques del aviso "Reserva cancelada" no llevan a la reserva — **baja** ✋ SE ACEPTA
+
+> **Decisión:** no se corrige: no existe una pantalla de detalle de una reserva. El aviso lleva a "Mis reservas", donde está la lista y el QR.
 
 - Va a la pestaña Mis Reservas (no existe pantalla de detalle de una reserva).
 
@@ -184,10 +215,10 @@ setVideoCache(destino.uri);
 | G-04 | ✅ Pantallas del personal (§6): bloqueos, fijas, agenda, precio | Resuelto: **Agenda del día**, **Bloqueos**, **Reservas fijas** y **Precios** | — |
 | G-05 | ✅ Distinguir roles en la interfaz (D6) | Resuelto: escáner, agenda y bloqueos para el personal; reservas fijas y precios sólo para el administrador | — |
 | G-06 | Guardar fotos/video para verlos sin datos (§capacidades) | ✅ Resuelto (B-04) | — |
-| G-07 | `expo-sensors` y `kv-store` | Instalados, sin uso real | S |
+| G-07 | ⚠️ `expo-sensors` y `kv-store` | Parcial: `kv-store` guarda el tema elegido. `expo-sensors` sigue instalado sin uso (el PRD lo lista entre las capacidades; un uso natural sería "agitar para recargar") | S |
 | G-08 | ✅ `react-native-maps` (PRD) | Resuelto: el mapa pasó de Leaflet en un `WebView` a `react-native-maps` (y se quitó `react-native-webview`). Pendiente de la entrega: la clave de Google Maps para los builds de Android | — |
 | G-09 | Build de producción con EAS (Entrega) | ⚠️ Configuración lista (`eas.json`, nombre, identificador, permisos). Falta lo que requiere cuentas: `eas init`, URL `https://` de la API en `eas.json`, credenciales de push, la clave `GOOGLE_MAPS_API_KEY` (mapa en Android) y generar el build | S |
-| G-10 | Mostrar el precio por turno y el motivo del bloqueo en la grilla | La API los envía; la app no los muestra | S |
+| G-10 | ✅ Mostrar el precio por turno y el motivo del bloqueo en la grilla | Resuelto: los turnos libres muestran su precio, el mantenimiento su motivo y una reserva fija dice "Fijo" (como el wireframe del PRD) | — |
 
 ### Cómo implementar el recordatorio de 2 horas (G-03)
 
@@ -226,7 +257,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | D-10 | ✅ Dependencias sin uso | Resuelto: se quitaron `axios`, `zod`, `react-hook-form`, `@hookform/resolvers`, `@expo/ui`, `expo-glass-effect`, `expo-status-bar`, `expo-symbols` y el `package.json` de la raíz. Se conserva `expo-sensors` (G-07) | — |
 | D-11 | ✅ Pantalla `estado-cancha.tsx` huérfana | Resuelto: se eliminó | — |
 | D-12 | Ruta `/` ambigua | `app/index.tsx` y `app/(tabs)/index.tsx` | S |
-| D-13 | ✅ Sin tests de la app | Resuelto en lo esencial: **153 pruebas automáticas** (lógica, servicios, sesión, notificaciones, caché, componentes) y CI. Faltan las pruebas de render de pantallas completas y de navegación (ver [07 §4.6](07-pruebas-y-calidad.md)) | — |
+| D-13 | ✅ Sin tests de la app | Resuelto en lo esencial: **163 pruebas automáticas** (lógica, servicios, sesión, notificaciones, caché, componentes) y CI. Faltan las pruebas de render de pantallas completas y de navegación (ver [07 §4.6](07-pruebas-y-calidad.md)) | — |
 | D-14 | Lockfile de la API desincronizado | `pnpm install` y commitear `pnpm-lock.yaml` (el CI usa `--frozen-lockfile`) | S |
 | D-15 | `http://` en claro | Aceptable en desarrollo; para producción usar `https://` (Render) | — |
 | D-16 | ✅ `Total a pagar` | Resuelto: ahora dice "Precio del turno" | — |
@@ -236,7 +267,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 
 ## 5. Plan de cierre recomendado (orden sugerido)
 
-**Avance:** las prioridades **1 a 12 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). Quedan los pendientes menores: D-03, D-04, D-05, D-07, D-12, D-17, D-18 y D-19 (y, de D-13, las pruebas de pantallas completas).
+**Avance:** las prioridades **1 a 12 están hechas** (marcadas ✅ en la tabla de abajo; la 10 deja la configuración lista y el build depende de las cuentas del grupo). Lo que queda está en el resumen de arriba.
 
 | Prioridad | Tarea | Resuelve |
 |---|---|---|

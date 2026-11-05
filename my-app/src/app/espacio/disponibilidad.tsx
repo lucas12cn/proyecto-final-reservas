@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTema } from '../../hooks/use-theme';
 import { aFechaLocal } from '../../servicios/turnos';
+import { pesos } from '../../servicios/formato';
 import { obtenerTurnosEspacio } from '../../servicios/reservas';
 
 const generarProximosDias = () => {
@@ -62,25 +63,35 @@ export default function DisponibilidadScreen() {
     }, [id, fechaSeleccionada])
   );
 
-  const renderBotonEstado = (estado: string) => {
+  // `turno` trae el precio (turnos libres) y el motivo del bloqueo (mantenimiento), que dice el PRD que se vean
+  const renderBotonEstado = (estado: string, turno: any) => {
     switch (estado) {
       case 'libre':
         return (
           <View style={[estilos.botonEstado, { backgroundColor: '#10b981' }]}>
-            <Text style={estilos.textoEstadoFuerte}>Disponible</Text>
+            <Text style={estilos.textoEstadoFuerte}>
+              Disponible{typeof turno.precio === 'number' ? `  ·  ${pesos(turno.precio)}` : ''}
+            </Text>
           </View>
         );
       case 'reservado':
-      case 'fijo':
         return (
           <View style={[estilos.botonEstado, { backgroundColor: paleta.surface, borderColor: paleta.border, borderWidth: 1 }]}>
             <Text style={[estilos.textoEstadoDebil, { color: paleta.muted }]}>Ocupado</Text>
+          </View>
+        );
+      case 'fijo':
+        // Reserva fija semanal (un club, una escuelita): se distingue de una reserva común
+        return (
+          <View style={[estilos.botonEstado, { backgroundColor: paleta.surface, borderColor: paleta.border, borderWidth: 1 }]}>
+            <Text style={[estilos.textoEstadoDebil, { color: paleta.muted }]}>Fijo</Text>
           </View>
         );
       case 'mantenimiento':
         return (
           <View style={[estilos.botonEstado, { backgroundColor: '#f59e0b' }]}>
             <Text style={estilos.textoEstadoFuerte}>Mantenimiento</Text>
+            {!!turno.motivoBloqueo && <Text style={estilos.textoMotivo}>{turno.motivoBloqueo}</Text>}
           </View>
         );
       case 'pasado':
@@ -174,7 +185,7 @@ export default function DisponibilidadScreen() {
                   <Text style={[estilos.textoHora, { color: estadoVisual === 'pasado' ? paleta.border : paleta.text }]}>
                     {horaCorta}
                   </Text>
-                  {renderBotonEstado(estadoVisual)}
+                  {renderBotonEstado(estadoVisual, turno)}
                 </TouchableOpacity>
               );
             })
@@ -200,5 +211,6 @@ const estilos = StyleSheet.create({
   textoHora: { width: 60, fontSize: 16, fontWeight: 'bold' },
   botonEstado: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   textoEstadoFuerte: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-  textoEstadoDebil: { fontWeight: '600', fontSize: 16 }
+  textoEstadoDebil: { fontWeight: '600', fontSize: 16 },
+  textoMotivo: { color: 'white', fontSize: 12, marginTop: 2 }
 });

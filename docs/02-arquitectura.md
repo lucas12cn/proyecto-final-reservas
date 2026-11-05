@@ -171,6 +171,7 @@ my-app/src/
 │   ├── reservas.ts           /espacios, /deportes, /reservas, /ingresos, favoritos
 │   ├── notificaciones.ts     Permiso, token de Expo, alta/baja, recordatorio local de 2 h
 │   ├── turnos.ts             Id de turno (tur-esp-02-AAAAMMDD-HH) y fechas locales
+│   ├── formato.ts            pesos(): "$9.500"
 │   ├── archivos.ts           Copia local de fotos/videos (expo-file-system nuevo)
 │   └── db.ts                 SQLite: catálogo de espacios y deportes (respaldo sin conexión)
 ├── componentes/personal.tsx  Piezas de formulario del personal (SelectorDia, Paso, ListaEspacios)
@@ -216,7 +217,7 @@ varias pantallas llaman directamente a SQLite o `expo-file-system`.
 | Foto principal y video de la ficha | Directorio de documentos del teléfono (`esp_img_<id>_<hash>.jpg`, `esp_vid_<id>_<hash>.mp4`) | `servicios/archivos.ts`, en segundo plano | `espacio/[id].tsx` |
 | Recordatorios de 2 h | Notificaciones programadas del sistema (`recordatorio-<reservaId>`) | `servicios/notificaciones.ts` | el sistema operativo |
 | Galería de la cancha | SQLite `canchas_galeria.db`, tabla `galeria` | `espacio/[id].tsx` | `espacio/[id].tsx` |
-| Tema elegido | Estado de React en `ThemeProvider` | `perfil.tsx` | toda la app — **no persiste** al cerrar la app |
+| Tema elegido | `expo-sqlite/kv-store` (clave `modoTema`) y estado de React en `ThemeProvider` | `perfil.tsx` | `ThemeProvider` al arrancar (lectura síncrona) |
 | Sesión y usuario actuales en memoria | `useState` en `AuthContext` | `AuthContext` | `useAuth()` |
 
 ## 5. Flujos principales
