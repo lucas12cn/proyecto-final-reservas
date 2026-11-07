@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { iniciarSesionApi, registrarUsuarioApi } from '../servicios/auth';
 import { registrarParaPush, darDeBajaPush, cancelarTodosLosRecordatorios } from '../servicios/notificaciones';
 import { registrarAlSesionVencida } from '../servicios/errores';
+import { borrarCacheReservas } from '../servicios/cacheReservas';
 import { Usuario } from '../tipos';
 
 type AuthContextType = {
@@ -71,6 +72,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(null);
     setUsuario(null);
     await cancelarTodosLosRecordatorios(); // los recordatorios son de la cuenta que se va
+    try {
+      borrarCacheReservas(); // y las reservas guardadas: la próxima persona no debe verlas sin conexión
+    } catch (error) {
+      console.log('No se pudo borrar la copia local de las reservas:', error);
+    }
     await SecureStore.deleteItemAsync('tokenReserva');
     await SecureStore.deleteItemAsync('usuarioReserva');
   };

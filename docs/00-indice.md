@@ -8,7 +8,7 @@ está hecho y dónde mirar en el código.
 > (commit `3c59b52`) y suma lo que hizo el grupo: la integración de notificaciones push (módulo de
 > dispositivos en la API y servicio de notificaciones en la app), el recordatorio local, el caché sin
 > conexión, el mapa nativo, las pantallas del personal (agenda, bloqueos, reservas fijas y precios),
-> la configuración de EAS, **163 pruebas automáticas** y el CI. Todo lo que se afirma sobre el
+> la configuración de EAS, **183 pruebas automáticas** y el CI. Todo lo que se afirma sobre el
 > código fue verificado leyéndolo y ejecutándolo; lo que no se pudo verificar (comportamiento en un
 > teléfono real, los workflows en GitHub, el build de EAS) se marca como tal. Lo pendiente está en el
 > resumen de [08](08-estado-actual-y-deuda-tecnica.md).
@@ -26,6 +26,7 @@ está hecho y dónde mirar en el código.
 | Saber cómo se prueba y cómo correr los tests | [07 Pruebas y calidad](07-pruebas-y-calidad.md) |
 | Saber qué falta y qué está mal (¡antes de la defensa!) | [08 Estado actual y deuda técnica](08-estado-actual-y-deuda-tecnica.md) |
 | Prepararse para la defensa oral | [09 Guía de defensa](09-guia-de-defensa.md) |
+| Saber qué tareas quedan y quién las hace | [`PENDIENTES.md`](../PENDIENTES.md) (en la raíz del repositorio) |
 
 **Orden recomendado para estudiar:** 01 → 02 → 06 → 03 → 04 → 05 → 07 → 08 → 09.
 

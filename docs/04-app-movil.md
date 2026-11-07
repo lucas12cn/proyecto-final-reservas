@@ -101,8 +101,8 @@ Funcionamiento:
 2. `login`/`registro` llaman a `servicios/auth.ts`, guardan token y usuario en estado **y** en
    `SecureStore`, y disparan `registrarParaPush()` sin esperar (no demora el ingreso).
 3. `logout` ejecuta **en este orden**: `darDeBajaPush()` (necesita el token vigente) → limpia
-   la sesión (`limpiarSesion`: estado, recordatorios locales programados y las dos claves de
-   `SecureStore`) → `router.replace('/login')`.
+   la sesión (`limpiarSesion`: estado, recordatorios locales programados, **reservas guardadas en el
+   teléfono** y las dos claves de `SecureStore`) → `router.replace('/login')`.
 4. `useAuth()` lanza un error si se usa fuera del `AuthProvider`.
 5. **Sesión vencida:** el provider se anota en `servicios/errores.ts`
    (`registrarAlSesionVencida`). Cuando cualquier pedido recibe `NO_AUTENTICADO` de la API
@@ -204,7 +204,7 @@ crean la **primera vez que se usa**, no al importar el archivo. Guardar reemplaz
 completa dentro de una transacción (`withTransactionSync`), de modo que un espacio dado de baja
 en el servidor tampoco queda en el teléfono. Las funciones de `reservas_locales` y
 `guardarPreferenciaComplejo` (kv-store) existen pero ninguna pantalla las usa: "Mis reservas"
-tiene su propia base (`mis_reservas_final.db`).
+tiene su propia base (`mis_reservas_final.db`, manejada por `servicios/cacheReservas.ts`).
 
 ### 3.5 `servicios/errores.ts`
 
@@ -256,6 +256,23 @@ URL, sin el servidor: la IP de la API cambia de red en red y no debe invalidar l
 `archivoGuardado(nombre)` devuelve la URI local si el archivo existe (sin red) y
 `guardarArchivo(url, nombre)` lo descarga con `File.downloadFileAsync`; si falla, borra el
 archivo incompleto (en Android una descarga cortada puede dejarlo) y devuelve `null`.
+
+### 3.10 `servicios/misReservas.ts` y `servicios/cacheReservas.ts`
+
+`cargarMisReservasConRespaldo(filtro)` devuelve `{ reservas, espacios, sinConexion }`:
+
+- **Intenta la API** salvo que `isConnected` sea `false`. **No exige `isInternetReachable`**: en
+  Android es falso en una wifi sin salida a internet (la API en una notebook de la red local, como en
+  la demo) y antes la pantalla mostraba datos viejos aunque la API respondiera.
+- Si la API **falla** (sin respuesta, error 5xx) usa lo guardado; si el error es de **sesión**
+  (`NO_AUTENTICADO` / `SIN_SESION`) lo relanza.
+- Un fallo al guardar o al leer la copia local nunca rompe la pantalla (se loguea).
+
+`cacheReservas.ts` guarda en SQLite (`mis_reservas_final.db`, tabla `cache_reservas`: una fila por
+filtro con `reservas_json` y `espacios_json`; métodos síncronos, "para evitar crasheos en Android"):
+`guardarReservasEnCache`, `leerReservasDeCache` (o `null`) y **`borrarCacheReservas`**, que el
+`AuthContext` llama al cerrar o vencer la sesión: sin eso, quien ingresara después en el mismo
+teléfono vería, sin conexión, las reservas de la cuenta anterior.
 
 ### 3.9 `servicios/formato.ts`
 
@@ -372,15 +389,15 @@ Pantalla clave del requisito offline.
 
 1. **Filtro** `proximas | historial` (`pasadas` en la API) con dos botones.
 2. **`cargarMisReservas()`** (se ejecuta con `useFocusEffect` cada vez que la pestaña gana el
-   foco, o cambia `filtro`/`usuario`). Sin `usuario`, no consulta.
-3. **Con conexión** (`isConnected && isInternetReachable`): `Promise.all` de
-   `obtenerMisReservas(filtro)` y `obtenerEspacios()`; arma un mapa `{ [espacioId]: Espacio }`
-   y lo **guarda en SQLite**: base `mis_reservas_final.db`, tabla
-   `cache_reservas(filtro PK, reservas_json, espacios_json)`, con `INSERT OR REPLACE`.
-   Usa las variantes **síncronas** (`openDatabaseSync`, `execSync`, `runSync`) "para evitar
-   crasheos en Android".
-4. **Sin conexión:** cartel "⚠️ Sin conexión. Mostrando reservas guardadas." y lectura de la
-   fila del filtro actual. Primera vez sin caché → lista vacía.
+   foco, o cambia `filtro`/`usuario`). Sin `usuario`, no consulta. Delega en
+   `cargarMisReservasConRespaldo(filtro)` (`servicios/misReservas.ts`, §3.10).
+3. **De la API si se puede:** si `Network.getNetworkStateAsync()` no dice `isConnected === false`,
+   pide en paralelo `obtenerMisReservas(filtro)` y `obtenerEspacios()`, arma el mapa
+   `{ [espacioId]: Espacio }` y **guarda la copia** en SQLite (§3.10).
+4. **Lo guardado si no:** sin red, o si la API no responde o falla, muestra el cartel "⚠️ Sin
+   conexión. Mostrando reservas guardadas." y lee la fila del filtro actual (primera vez sin copia →
+   lista vacía). Los errores de **sesión** (`NO_AUTENTICADO`, `SIN_SESION`) no caen al caché: se
+   relanzan y el `AuthContext` cierra la sesión. Con datos guardados no se tocan los recordatorios.
 5. **Tarjeta de reserva:** estilo "wireframe" del PRD. Título "Mi reserva – ESTADO", nombre de la
    cancha, fecha/hora, complejo, precio ("se paga en el lugar"), **código QR** (si no está
    cancelada) y botones "Cómo llegar" y "Cancelar reserva".

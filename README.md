@@ -246,7 +246,7 @@ siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
 | `npx expo config --type introspect` | Muestra permisos y `Info.plist`/manifiesto resultantes (sirve para revisar `app.json`) |
 | `npm run lint` | Lint de Expo |
 | `npx tsc --noEmit` | Chequeo de tipos (incluye las pruebas) |
-| `npm test` | **163 pruebas automáticas** (≈ 8 s). `npm run test:watch` las repite al guardar |
+| `npm test` | **183 pruebas automáticas** (≈ 8 s). `npm run test:watch` las repite al guardar |
 
 ### Integración continua
 
@@ -287,6 +287,9 @@ diseño, implementación y código):
 | [`docs/07-pruebas-y-calidad.md`](docs/07-pruebas-y-calidad.md) | Estrategia de pruebas, CI y plan de pruebas manuales |
 | [`docs/08-estado-actual-y-deuda-tecnica.md`](docs/08-estado-actual-y-deuda-tecnica.md) | Qué falta respecto del PRD, errores conocidos y mejoras |
 | [`docs/09-guia-de-defensa.md`](docs/09-guia-de-defensa.md) | Guion para la defensa oral y preguntas probables |
+
+**Qué falta hacer** (tareas para los integrantes, decisiones, verificaciones en teléfono real y
+checklist de la defensa): [`PENDIENTES.md`](PENDIENTES.md).
 
 La API trae además su propia documentación en `api-reservas-deportivas/` (`README.md`,
 `AGENTS.md`, `docs/SPECIFICATION.md`, `docs/DECISIONS.md`, `docs/NOTIFICATIONS.md`).

@@ -212,7 +212,7 @@ varias pantallas llaman directamente a SQLite o `expo-file-system`.
 | Token de sesión (`tokenReserva`) | `expo-secure-store` | `AuthContext` (ingreso/registro), borrado en `logout` | `servicios/*` (en cada pedido), `AuthContext` al arrancar |
 | Usuario (`usuarioReserva`, JSON) | `expo-secure-store` | `AuthContext`, `perfil.tsx` (al editar) | `AuthContext` al arrancar |
 | Token de Expo (`tokenPushExpo`) | `expo-secure-store` | `servicios/notificaciones.ts` | el mismo (para dar de baja) |
-| Reservas y espacios (caché) | SQLite `mis_reservas_final.db`, tabla `cache_reservas` | `(tabs)/index.tsx` | `(tabs)/index.tsx` sin conexión |
+| Reservas y espacios (caché) | SQLite `mis_reservas_final.db`, tabla `cache_reservas` | `servicios/cacheReservas.ts`, desde `servicios/misReservas.ts` | el mismo, sin conexión. **Se borra al cerrar o vencer la sesión** |
 | Catálogo (espacios y deportes) | SQLite `villaguay_deportes.db`, tablas `espacios_locales` y `deportes_locales` | `servicios/reservas.ts` (vía `db.ts`) al descargar bien | el mismo, cuando no hay red |
 | Foto principal y video de la ficha | Directorio de documentos del teléfono (`esp_img_<id>_<hash>.jpg`, `esp_vid_<id>_<hash>.mp4`) | `servicios/archivos.ts`, en segundo plano | `espacio/[id].tsx` |
 | Recordatorios de 2 h | Notificaciones programadas del sistema (`recordatorio-<reservaId>`) | `servicios/notificaciones.ts` | el sistema operativo |
@@ -284,15 +284,23 @@ sequenceDiagram
 flowchart TD
   A["useFocusEffect → cargarMisReservas()"] --> B{"¿Hay sesión?"}
   B -- no --> Z["No consulta: lista vacía<br/>('No tenés reservas activas')"]
-  B -- sí --> C["Network.getNetworkStateAsync()"]
-  C --> D{"isConnected &&<br/>isInternetReachable"}
-  D -- sí --> E["GET /yo/reservas?cuando= y GET /espacios (en paralelo)"]
-  E --> F["Mostrar"]
-  F --> G["Guardar en SQLite: cache_reservas<br/>(clave = filtro 'proximas'|'pasadas')"]
-  D -- no --> H["Cartel 'Sin conexión'"]
+  B -- sí --> C["cargarMisReservasConRespaldo()<br/>Network.getNetworkStateAsync()"]
+  C --> D{"isConnected === false"}
+  D -- no --> E["GET /yo/reservas y GET /espacios (en paralelo)"]
+  E --> K{"¿Respondió bien?"}
+  K -- sí --> F["Mostrar y guardar en SQLite<br/>(cache_reservas, clave = filtro)"]
+  K -- "NO_AUTENTICADO / SIN_SESION" --> L["Se relanza el error: se cierra la sesión<br/>y NO se muestra nada guardado"]
+  K -- "sin respuesta / error del servidor" --> H
+  D -- sí --> H["Cartel 'Sin conexión'"]
   H --> I["Leer de SQLite por filtro"]
   I --> J["Mostrar reservas y QR guardados"]
 ```
+
+La decisión usa sólo `isConnected`; **no** se exige `isInternetReachable`. En Android ese campo es
+falso en una wifi sin salida a internet (típico de una red local con la API en una notebook, como en
+la demo) aunque la API responda bien: con esa condición la app creía estar sin conexión y mostraba
+datos viejos. Si la API falla estando "conectado" también se usa lo guardado. Al **cerrar sesión o
+vencer la sesión se borra** la copia local: es del teléfono, no de la cuenta.
 
 ### 5.4 Bloqueo del encargado → push al jugador
 

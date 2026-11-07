@@ -10,7 +10,7 @@ Todos se verificaron leyendo el código; los que dependen de un teléfono real s
 
 | Lista | Total | ✅ Resueltos | ⚠️ Parciales / aclarados | ✋ Aceptados | ⏳ Pendientes |
 |---|---|---|---|---|---|
-| Errores (`B-xx`) | 13 | 10 (B-01 a B-07, B-09, B-10, B-11) | 1 (B-12) | 2 (B-08, B-13) | 0 |
+| Errores (`B-xx`) | 15 | 12 (B-01 a B-07, B-09, B-10, B-11, B-14, B-15) | 1 (B-12) | 2 (B-08, B-13) | 0 |
 | Brechas del PRD (`G-xx`) | 10 | 8 (G-01 a G-06, G-08, G-10) | 2 (G-07, G-09) | 0 | 0 |
 | Deuda técnica (`D-xx`) | 19 | 8 (D-01, D-02, D-08 a D-11, D-13, D-16) | 4 (D-03, D-04, D-06, D-07) | 1 (D-15) | 6 (D-05, D-12, D-14, D-17, D-18, D-19) |
 
@@ -40,7 +40,7 @@ Todos se verificaron leyendo el código; los que dependen de un teléfono real s
   video, SQLite, notificaciones, red) integradas en flujos con sentido.
 - **Tema claro/oscuro** (se recuerda entre sesiones) y estados de carga/vacío/error en las pantallas principales.
 - **Pantallas de administración completas** (agenda con ausentes, bloqueos con aviso previo de reservas afectadas, reservas fijas y precios), limitadas por rol en la interfaz y en la API.
-- **163 pruebas automáticas** de la app, comprobadas introduciendo errores a propósito, más las de la API; CI en la raíz del repositorio.
+- **183 pruebas automáticas** de la app, comprobadas introduciendo errores a propósito, más las de la API; CI en la raíz del repositorio.
 - **Documentación verificada contra el código:** cada ruta y función citada existe (auditoría automática) y los pasos del README se siguieron desde una copia limpia.
 
 ## 2. Errores conocidos
@@ -205,6 +205,30 @@ setVideoCache(destino.uri);
 
 - Va a la pestaña Mis Reservas (no existe pantalla de detalle de una reserva).
 
+### B-14 · "Mis reservas" creía estar sin conexión en una wifi sin internet — **alta** ✅ RESUELTO
+
+- **Dónde:** `(tabs)/index.tsx`, que sólo usaba la API si `isConnected && isInternetReachable`.
+- **Causa:** en Android, `isInternetReachable` es falso cuando la red no tiene salida a internet aunque
+  haya conexión (según la documentación de `expo-network`). En la demo, con la API en una notebook y
+  una wifi sin internet, la pantalla mostraba el caché viejo y nunca las reservas reales. Además, si
+  la API fallaba estando "conectado", tampoco caía al caché.
+- **Se encontró** al preparar la lista de pruebas en teléfono real (`PENDIENTES.md`).
+
+> **Resuelto:** `servicios/misReservas.ts` decide sólo con `isConnected`, y cae a lo guardado si la API
+> falla; los errores de sesión se relanzan. Cubierto por `__tests__/misReservas.test.ts` (verificado
+> reintroduciendo el error). Caso manual T-60.
+
+### B-15 · Las reservas guardadas en el teléfono no se borraban al cerrar sesión — **alta** ✅ RESUELTO
+
+- **Dónde:** el caché de "Mis reservas" (`mis_reservas_final.db`) es del teléfono, no de la cuenta, y
+  `logout` no lo borraba.
+- **Efecto:** quien ingresaba después en el mismo teléfono, sin conexión, veía las reservas (con su QR)
+  de la cuenta anterior.
+
+> **Resuelto:** `limpiarSesion` (usada por el logout y por la sesión vencida) llama a
+> `borrarCacheReservas()`; un fallo al borrar no impide cerrar sesión. Cubierto por
+> `__tests__/AuthContext.test.tsx`. Caso manual T-61.
+
 ## 3. Brechas respecto del PRD
 
 | ID | Requisito (PRD) | Estado | Esfuerzo |
@@ -248,7 +272,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | D-01 | ✅ **IP de la API** | Resuelto: `servicios/config.ts` lee `EXPO_PUBLIC_API_URL` (`.env.local`) | — |
 | D-02 | ✅ Servicios simulados | Resuelto: se eliminaron `obtenerComplejosApi` y `obtenerMisReservasApi`; `registrarIngresoApi` es real | — |
 | D-03 | ⚠️ Funciones duplicadas | Parcial: se eliminó `obtenerTurnosPorDia`; los filtros del catálogo siguen en el cliente | S |
-| D-04 | ⚠️ Capas saltadas | Parcial: la ficha ya usa `servicios/archivos.ts` y el catálogo usa `servicios/db.ts`; "Mis reservas" y la galería de la ficha siguen abriendo su propia base SQLite | M |
+| D-04 | ⚠️ Capas saltadas | Parcial: la ficha usa `servicios/archivos.ts`, el catálogo `servicios/db.ts` y "Mis reservas" `servicios/cacheReservas.ts`. Sigue abriendo su propia base la galería de la ficha | M |
 | D-05 | Mucho `any` | `useState<any[]>`, `catch (error: any)`, `ThemeContext = createContext<any>`; usar los tipos del PRD | M |
 | D-06 | ⚠️ Varias bases SQLite | Parcial: se eliminó la paleta sin uso (`theme/colors.ts`). Siguen tres bases (`mis_reservas_final.db`, `canchas_galeria.db`, `villaguay_deportes.db`): unificarlas es opcional | S |
 | D-07 | ⚠️ Acoplamiento al formato del id de turno | Parcial: el desarmado está en un solo lugar (`servicios/turnos.ts`); sigue dependiendo del formato | S |
@@ -257,7 +281,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | D-10 | ✅ Dependencias sin uso | Resuelto: se quitaron `axios`, `zod`, `react-hook-form`, `@hookform/resolvers`, `@expo/ui`, `expo-glass-effect`, `expo-status-bar`, `expo-symbols` y el `package.json` de la raíz. Se conserva `expo-sensors` (G-07) | — |
 | D-11 | ✅ Pantalla `estado-cancha.tsx` huérfana | Resuelto: se eliminó | — |
 | D-12 | Ruta `/` ambigua | `app/index.tsx` y `app/(tabs)/index.tsx` | S |
-| D-13 | ✅ Sin tests de la app | Resuelto en lo esencial: **163 pruebas automáticas** (lógica, servicios, sesión, notificaciones, caché, componentes) y CI. Faltan las pruebas de render de pantallas completas y de navegación (ver [07 §4.6](07-pruebas-y-calidad.md)) | — |
+| D-13 | ✅ Sin tests de la app | Resuelto en lo esencial: **183 pruebas automáticas** (lógica, servicios, sesión, notificaciones, caché, componentes) y CI. Faltan las pruebas de render de pantallas completas y de navegación (ver [07 §4.6](07-pruebas-y-calidad.md)) | — |
 | D-14 | Lockfile de la API desincronizado | `pnpm install` y commitear `pnpm-lock.yaml` (el CI usa `--frozen-lockfile`) | S |
 | D-15 | `http://` en claro | Aceptable en desarrollo; para producción usar `https://` (Render) | — |
 | D-16 | ✅ `Total a pagar` | Resuelto: ahora dice "Precio del turno" | — |

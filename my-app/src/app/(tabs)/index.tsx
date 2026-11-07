@@ -2,11 +2,10 @@ import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
-import * as Network from 'expo-network';
-import * as SQLite from 'expo-sqlite';
 import { useTema } from '../../hooks/use-theme';
 import { useAuth } from '../../contexto/AuthContext';
-import { obtenerMisReservas, cancelarReserva, obtenerEspacios } from '../../servicios/reservas';
+import { cancelarReserva } from '../../servicios/reservas';
+import { cargarMisReservasConRespaldo } from '../../servicios/misReservas';
 import { cancelarRecordatorio, sincronizarRecordatorios } from '../../servicios/notificaciones';
 import { leerTurnoId, plazoDeCancelacion } from '../../servicios/turnos';
 
@@ -28,78 +27,20 @@ export default function MisReservasScreen() {
 
     setCargando(true);
     try {
-      const estadoRed = await Network.getNetworkStateAsync();
+      // De la API si se puede; si no (sin red o la API no responde), lo último guardado en el teléfono
+      const datos = await cargarMisReservasConRespaldo(filtro);
+      setModoOffline(datos.sinConexion);
+      setReservas(datos.reservas);
+      setEspacios(datos.espacios);
 
-      if (estadoRed.isConnected && estadoRed.isInternetReachable) {
-        // 1. ONLINE: LLAMADA A TU API REAL EN NESTJS
-        setModoOffline(false);
-        const [listaReservas, listaEspacios] = await Promise.all([
-          obtenerMisReservas(filtro),
-          obtenerEspacios()
-        ]);
-
-        const mapaEspacios: Record<string, any> = {};
-        listaEspacios.forEach((e: any) => mapaEspacios[e.id] = e);
-        
-        setEspacios(mapaEspacios);
-        setReservas(listaReservas);
-
-        // Recordatorios de 2 h al día con lo que dice el servidor (también cancela los de
-        // reservas que ya no están confirmadas, p. ej. las que canceló un bloqueo).
-        if (filtro === 'proximas') sincronizarRecordatorios(listaReservas, mapaEspacios);
-
-        // Guardar en caché con SQLite (Métodos sincrónicos para evitar crasheos en Android)
-        try {
-          const db = SQLite.openDatabaseSync('mis_reservas_final.db');
-          db.execSync(`
-            CREATE TABLE IF NOT EXISTS cache_reservas (
-              filtro TEXT PRIMARY KEY, 
-              reservas_json TEXT, 
-              espacios_json TEXT
-            );
-          `);
-          db.runSync(
-            'INSERT OR REPLACE INTO cache_reservas (filtro, reservas_json, espacios_json) VALUES (?, ?, ?)',
-            [filtro, JSON.stringify(listaReservas), JSON.stringify(mapaEspacios)]
-          );
-        } catch (sqliteError) {
-          console.log("Aviso: No se guardó caché local", sqliteError);
-        }
-      } else {
-        // 2. OFFLINE: Recuperar del caché local SQLite
-        setModoOffline(true);
-        try {
-          const db = SQLite.openDatabaseSync('mis_reservas_final.db');
-          // Por si se abre por primera vez offline, creamos la tabla antes de consultar
-          db.execSync(`
-            CREATE TABLE IF NOT EXISTS cache_reservas (
-              filtro TEXT PRIMARY KEY, 
-              reservas_json TEXT, 
-              espacios_json TEXT
-            );
-          `);
-          
-          const fila = db.getFirstSync<{ reservas_json: string, espacios_json: string }>(
-            'SELECT reservas_json, espacios_json FROM cache_reservas WHERE filtro = ?',
-            [filtro]
-          );
-
-          if (fila) {
-            setReservas(JSON.parse(fila.reservas_json));
-            setEspacios(JSON.parse(fila.espacios_json));
-          } else {
-            setReservas([]);
-            setEspacios({});
-          }
-        } catch (sqliteError) {
-          setReservas([]);
-          setEspacios({});
-        }
-      }
+      // Recordatorios de 2 h al día con lo que dice el servidor (también cancela los de reservas que
+      // ya no están confirmadas, p. ej. las que canceló un bloqueo). Con datos guardados no se toca.
+      if (!datos.sinConexion && filtro === 'proximas') sincronizarRecordatorios(datos.reservas, datos.espacios);
     } catch (error) {
-      console.error('Error cargando reservas de la API:', error);
+      // Si la sesión venció, el AuthContext ya avisó y llevó al ingreso
+      console.error('Error cargando reservas:', error);
     } finally {
-      setCargando(false); 
+      setCargando(false);
     }
   };
 

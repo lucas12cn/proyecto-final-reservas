@@ -228,18 +228,18 @@ ubicación o fotos y el sistema cierra la app al pedirlo.
 ### Calidad y seguridad
 
 **¿Cómo probaron?** La API trae ~300 tests unitarios, ~1.160 e2e y 25 de notificaciones, que
-corren en el CI contra 4 motores de base de datos. La app tiene **163 pruebas automáticas** (Jest,
+corren en el CI contra 4 motores de base de datos. La app tiene **183 pruebas automáticas** (Jest,
 `jest-expo` y Testing Library, `npm test`, unos 8 segundos) sobre la lógica de negocio, los
 servicios con la API simulada, la sesión, las notificaciones, el caché y los componentes de
 formulario. Lo que depende de pantallas completas, de la navegación y del teléfono (cámara, mapa,
-push reales) se prueba a mano con el plan de 74 casos de [07 §5](07-pruebas-y-calidad.md).
+push reales) se prueba a mano con el plan de 76 casos de [07 §5](07-pruebas-y-calidad.md).
 
-**¿Cómo saben que las pruebas sirven?** Se introdujeron siete errores a propósito (por ejemplo,
+**¿Cómo saben que las pruebas sirven?** Se introdujeron doce errores a propósito (por ejemplo,
 usar la fecha UTC en la grilla, o cerrar sesión antes de dar de baja el teléfono) y se verificó que
 alguna prueba se rompiera. Una de ellas no se detectaba porque la computadora estaba en UTC: por
 eso las pruebas fijan la zona horaria de Argentina.
 
-**¿Qué cubren y qué no?** Cubren 94,8 % de las sentencias de servicios, sesión y componentes. No
+**¿Qué cubren y qué no?** Cubren 95,1 % de las sentencias de servicios, sesión y componentes. No
 renderizan las pantallas completas ni usan un teléfono real ([07 §4.6](07-pruebas-y-calidad.md)).
 
 **¿El CI corre las pruebas?** `.github/workflows/app.yml` ejecuta `npm ci`, `tsc`, las pruebas y
@@ -304,7 +304,7 @@ mindmap
       Bloqueos con aviso previo
       Fijas y precios (admin)
     Calidad
-      163 pruebas de la app
+      183 pruebas de la app
       Pruebas con errores introducidos
       CI en la raíz del repo
     Pendiente

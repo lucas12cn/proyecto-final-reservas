@@ -11,6 +11,9 @@ jest.mock('../src/servicios/auth', () => ({
   iniciarSesionApi: jest.fn(),
   registrarUsuarioApi: jest.fn(),
 }));
+jest.mock('../src/servicios/cacheReservas', () => ({
+  borrarCacheReservas: jest.fn(() => { mockOrden.push('borrarCacheReservas'); }),
+}));
 jest.mock('../src/servicios/notificaciones', () => ({
   registrarParaPush: jest.fn(async () => null),
   darDeBajaPush: jest.fn(async () => { mockOrden.push('darDeBajaPush'); }),
@@ -24,6 +27,7 @@ import { AuthProvider, useAuth } from '../src/contexto/AuthContext';
 import { errorDesdeRespuesta } from '../src/servicios/errores';
 import { iniciarSesionApi, registrarUsuarioApi } from '../src/servicios/auth';
 import { cancelarTodosLosRecordatorios, darDeBajaPush, registrarParaPush } from '../src/servicios/notificaciones';
+import { borrarCacheReservas } from '../src/servicios/cacheReservas';
 
 const usuario = { id: 'usr-207', nombre: 'Emiliano Ruiz', email: 'emiliano@mail.com', rol: 'jugador' } as any;
 const m = (fn: unknown) => fn as jest.Mock;
@@ -117,6 +121,35 @@ describe('logout', () => {
     expect(result.current.token).toBeNull();
     expect(mockAlmacen.has('tokenReserva')).toBe(false);
     expect(mockAlmacen.has('usuarioReserva')).toBe(false);
+    expect(router.replace).toHaveBeenCalledWith('/login');
+  });
+});
+
+describe('privacidad: las reservas guardadas son de la cuenta que se va', () => {
+  const conSesion = async () => {
+    mockAlmacen.set('tokenReserva', 'TOKEN');
+    mockAlmacen.set('usuarioReserva', JSON.stringify(usuario));
+    return montar();
+  };
+
+  it('el logout borra las reservas guardadas en el teléfono', async () => {
+    const { result } = await conSesion();
+    await act(async () => { await result.current.logout(); });
+    expect(borrarCacheReservas).toHaveBeenCalledTimes(1);
+  });
+
+  it('la sesión vencida también las borra', async () => {
+    const { result } = await conSesion();
+    await act(async () => { await errorDesdeRespuesta(respuestaVencida(), 'x'); });
+    await waitFor(() => expect(result.current.usuario).toBeNull());
+    expect(borrarCacheReservas).toHaveBeenCalledTimes(1);
+  });
+
+  it('si el borrado falla, el cierre de sesión se completa igual', async () => {
+    m(borrarCacheReservas).mockImplementationOnce(() => { throw new Error('base bloqueada'); });
+    const { result } = await conSesion();
+    await act(async () => { await result.current.logout(); });
+    expect(result.current.usuario).toBeNull();
     expect(router.replace).toHaveBeenCalledWith('/login');
   });
 });
