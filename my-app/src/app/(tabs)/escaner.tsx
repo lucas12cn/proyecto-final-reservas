@@ -89,26 +89,31 @@ export default function EscanerScreen() {
     );
   }
 
-  if (!permiso) {
-    return <View style={[estilos.centrado, { backgroundColor: paleta.background }]} />;
-  }
-
+  // Si el permiso aún no está concedido (todavía no se determinó o fue denegado previamente)
   if (!permiso.granted) {
+    // Si el objeto permiso existe pero granted es false o undefined, mostramos el mensaje + botón
+    if (permiso) {
+      return (
+        <View style={[estilos.centrado, { backgroundColor: paleta.background }]}>
+          <Ionicons name="camera-outline" size={60} color={paleta.muted} style={{ marginBottom: 20 }} />
+          <Text style={{ color: paleta.text, textAlign: 'center', marginBottom: 20, fontSize: 16, paddingHorizontal: 20 }}>
+            El encargado necesita acceso a la cámara para validar las reservas mediante código QR.
+          </Text>
+          <TouchableOpacity style={[estilos.botonPermiso, { backgroundColor: paleta.accent }]} onPress={pedirPermiso}>
+            <Text style={estilos.textoBotonPermiso}>Otorgar Permiso</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{ marginTop: 20 }} onPress={() => router.back()}>
+            <Text style={{ color: paleta.muted }}>Volver al inicio</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    // Si permiso es undefined/null (aún no se determinó), mostramos indicador de carga
     return (
-      <View style={[estilos.centrado, { backgroundColor: paleta.background }]}>
-        <Ionicons name="camera-outline" size={60} color={paleta.muted} style={{ marginBottom: 20 }} />
-        <Text style={{ color: paleta.text, textAlign: 'center', marginBottom: 20, fontSize: 16, paddingHorizontal: 20 }}>
-          El encargado necesita acceso a la cámara para validar las reservas mediante código QR.
-        </Text>
-        <TouchableOpacity style={[estilos.botonPermiso, { backgroundColor: paleta.accent }]} onPress={pedirPermiso}>
-          <Text style={estilos.textoBotonPermiso}>Otorgar Permiso</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={{ marginTop: 20 }} onPress={() => router.back()}>
-          <Text style={{ color: paleta.muted }}>Volver al inicio</Text>
-        </TouchableOpacity>
-      </View>
+      <View style={[estilos.centrado, { backgroundColor: paleta.background }]} />
     );
   }
+  // Si granted es true, continuamos con el escáner (cae al return de abajo)
 
   const manejarEscaneo = async ({ data }: { data: string }) => {
     if (escaneando || !espacioSeleccionado) return;
