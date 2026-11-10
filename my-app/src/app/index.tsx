@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexto/AuthContext';
+import { SelectorServidor } from '../componentes/SelectorServidor';
 
 export default function LoginScreen() {
   // La sesión vive en AuthContext (claves tokenReserva / usuarioReserva): así el resto de
@@ -91,6 +92,10 @@ export default function LoginScreen() {
           onPress={iniciarSesion} 
           disabled={cargando}
         />
+
+        <View style={{ marginTop: 28 }}>
+          <SelectorServidor colores={{ texto: '#fafafa', atenuado: '#a1a1aa', borde: '#3f3f46', fondo: '#1f1f23' }} />
+        </View>
       </View>
     </SafeAreaView>
   );

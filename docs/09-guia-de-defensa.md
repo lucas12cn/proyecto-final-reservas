@@ -214,27 +214,36 @@ tiempo, pero la regla la valida el servidor.
 
 ### Entrega
 
-**¿Cómo generan la app para instalarla?** Con EAS Build: `eas build --platform android --profile
-preview` produce un APK instalable y `production` un AAB para Google Play. `eas.json` define los
-perfiles y la URL de la API de cada uno ([README §5](../README.md)).
+**¿Qué entregaron y cómo se demuestra?** Un **build `preview`** (APK, con EAS Build) y la **demostración
+en Expo Go**, con la **API local**: así se acordó con la cátedra, no se publica nada. Se genera con
+`eas build --platform android --profile preview` ([README §5](../README.md)).
 
-**¿Por qué la API del build tiene que ser https?** Android e iOS bloquean el tráfico `http://` sin
-cifrar en las apps de producción; sólo Expo Go y el development client lo permiten.
+**¿Cómo habla el APK con una API local si no tiene https?** Los builds de producción bloquean
+`http://`; en `preview` y `development`, `app.config.js` lo permite hacia la red local
+(`usesCleartextTraffic` en Android, `NSAllowsLocalNetworking` en iPhone). Como la IP de la notebook
+cambia de una red a otra, no se graba al compilar: se elige en la app (**Servidor**) y se guarda.
 
 **¿Por qué configuran permisos en `app.json` si Expo Go anda sin eso?** Expo Go ya trae los
 textos de permisos; un build propio no. Sin los plugins, en iOS falta el texto de cámara,
 ubicación o fotos y el sistema cierra la app al pedirlo.
 
+**¿Qué pasa con el mapa en el APK?** Necesita una clave de Google Maps (opcional para esta entrega).
+Sin ella el APK muestra la **lista de complejos** con distancia y "Cómo llegar" en lugar del mapa; en
+Expo Go y en iPhone el mapa funciona sin clave.
+
+**¿Y los sensores?** Son opcionales según la cátedra; el GPS (`expo-location`) se usa en el mapa para
+la distancia y el complejo más cercano.
+
 ### Calidad y seguridad
 
 **¿Cómo probaron?** La API trae ~300 tests unitarios, ~1.160 e2e y 25 de notificaciones, que
-corren en el CI contra 4 motores de base de datos. La app tiene **183 pruebas automáticas** (Jest,
+corren en el CI contra 4 motores de base de datos. La app tiene **215 pruebas automáticas** (Jest,
 `jest-expo` y Testing Library, `npm test`, unos 8 segundos) sobre la lógica de negocio, los
 servicios con la API simulada, la sesión, las notificaciones, el caché y los componentes de
 formulario. Lo que depende de pantallas completas, de la navegación y del teléfono (cámara, mapa,
-push reales) se prueba a mano con el plan de 76 casos de [07 §5](07-pruebas-y-calidad.md).
+push reales) se prueba a mano con el plan de 79 casos de [07 §5](07-pruebas-y-calidad.md).
 
-**¿Cómo saben que las pruebas sirven?** Se introdujeron doce errores a propósito (por ejemplo,
+**¿Cómo saben que las pruebas sirven?** Se introdujeron dieciocho errores a propósito (por ejemplo,
 usar la fecha UTC en la grilla, o cerrar sesión antes de dar de baja el teléfono) y se verificó que
 alguna prueba se rompiera. Una de ellas no se detectaba porque la computadora estaba en UTC: por
 eso las pruebas fijan la zona horaria de Argentina.
@@ -265,8 +274,9 @@ inexistente, de otro día, de otra cancha, ya usado, fuera de horario) están en
 es más simple y rápido filtrar en memoria; sería necesario filtrar en el servidor con cientos
 de espacios (D-03).
 
-**"Si cambia la IP de la computadora, ¿qué pasa?"** Se cambia `EXPO_PUBLIC_API_URL` en el
-`.env.local` de la app y se reinicia Expo con `-c`. En producción la app apuntaría a la URL pública de la API (Render).
+**"Si cambia la IP de la computadora, ¿qué pasa?"** Se cambia desde la app, en **Servidor → Cambiar**
+(se prueba con `/salud` y se guarda; rige de inmediato y sirve también para el APK). Alternativa:
+`EXPO_PUBLIC_API_URL` en `.env.local` y reiniciar Expo con `-c`.
 
 **"¿Y si dos encargados bloquean a la vez el mismo turno?"** El bloqueo corre en una
 transacción; cancelar una reserva dos veces es idempotente a nivel de estado (queda cancelada).
@@ -304,7 +314,7 @@ mindmap
       Bloqueos con aviso previo
       Fijas y precios (admin)
     Calidad
-      183 pruebas de la app
+      215 pruebas de la app
       Pruebas con errores introducidos
       CI en la raíz del repo
     Pendiente

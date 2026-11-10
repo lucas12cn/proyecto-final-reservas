@@ -9,8 +9,8 @@
 | API · notificaciones | Alta/baja de tokens y envío a un Expo falso | Vitest | 25 tests | `pnpm test:notificaciones` |
 | API · matriz | Los e2e contra PostgreSQL, MySQL y MariaDB | Docker / CI | — | `pnpm test:e2e:matriz` |
 | API · calidad | Tipos, lint, formato | `tsc`, oxlint, prettier | — | `pnpm verificar` |
-| App · automáticas | Lógica de negocio, servicios contra una API simulada, sesión, notificaciones, caché y componentes de formulario | Jest 29 + `jest-expo` + Testing Library v14 | **183 pruebas en 16 archivos** (≈ 8 s) | `npm test` (en `my-app/`) |
-| App · manuales | Pantallas completas, navegación, cámara, mapa, push en un teléfono real | Personas | 76 casos | Plan manual (§5) |
+| App · automáticas | Lógica de negocio, servicios contra una API simulada, sesión, notificaciones, caché y componentes de formulario | Jest 29 + `jest-expo` + Testing Library v14 | **215 pruebas en 19 archivos** (≈ 8 s) | `npm test` (en `my-app/`) |
+| App · manuales | Pantallas completas, navegación, cámara, mapa, push en un teléfono real | Personas | 79 casos | Plan manual (§5) |
 
 > Los números se midieron al correr la suite durante la elaboración de esta documentación
 > (con SQLite). Pueden variar si se agregan tests.
@@ -104,7 +104,10 @@ npx jest --coverage --collectCoverageFrom='src/servicios/**/*.ts'   # cobertura
 | `reservas.test.ts` | 36 | Cada servicio con `fetch` simulado: cuerpo y cabeceras enviados, errores de la API, **catálogo con respaldo sin conexión**, paginación de listados (varias páginas, sin bucle infinito), bloqueo de día entero **sin** `inicio`/`fin`, fijas, precios, ausentes, ingreso, permisos del encargado |
 | `auth.test.ts` | 12 | Ingreso, registro, perfil, alta y baja del dispositivo (token codificado en la URL), todo sin sesión |
 | `db.test.ts` | 6 | Caché del catálogo: se abre al primer uso, ida y vuelta por JSON, **guardar reemplaza la lista completa**, deportes aparte |
-| `config.test.ts` | 4 | `API_URL`: variable de entorno, barra final, valor por defecto, variable vacía |
+| `config.test.ts` | 15 | Dirección de la API: `normalizarUrlApi` (esquema, barras, puerto, rechaza ruta/ftp/basura); prioridad **app > `EXPO_PUBLIC_API_URL` > por defecto**; un valor guardado inválido o un `kv-store` caído no rompen; `fijarApiUrl` rige de inmediato, **sobrevive al cierre de la app** y se puede borrar |
+| `servidor.test.ts` | 6 | `probarServidor`: ok con `estado: "ok"`, tiempo máximo de espera, sin conexión, error HTTP, respuesta que no es la API, cuerpo que no es JSON |
+| `mapa.test.ts` | 5 | `mapaDisponible`: iPhone y Expo Go sí; APK de Android **sí con clave y no sin ella** |
+| `selectorServidor.test.tsx` | 10 | Cuadro *Servidor*: muestra la dirección, prueba, guarda, **pregunta antes de guardar una dirección que no responde**, **cierra la sesión al cambiar de servidor**, restablece |
 | `notificaciones.test.ts` | 23 | Recordatorio local (2 h antes, id por reserva, cancela antes de reprogramar, no programa si no está confirmada / faltan < 2 h / sin permiso / turno ilegible, nunca lanza); registro del token (`projectId`, canal de Android, emulador, permiso denegado); baja; manejador con la app abierta |
 | `AuthContext.test.tsx` | 14 | Arranque con y sin sesión; login/registro; **logout da de baja el teléfono antes de borrar la sesión**; **el logout y la sesión vencida borran las reservas guardadas** (privacidad entre cuentas); sesión vencida (un solo aviso aunque fallen varios pedidos; no se dispara durante un logout) |
 | `misReservas.test.ts` | 11 | Carga con respaldo: API si hay red, **API también con `isInternetReachable` en `false` o ausente (wifi sin internet)**, caché sin red, caché si la API falla, y sin caché si la sesión venció |
@@ -115,7 +118,7 @@ npx jest --coverage --collectCoverageFrom='src/servicios/**/*.ts'   # cobertura
 
 ### 4.4 ¿Las pruebas realmente detectan errores?
 
-Una prueba que nunca falla no sirve. Para comprobarlo se introdujeron **doce errores a
+Una prueba que nunca falla no sirve. Para comprobarlo se introdujeron **dieciocho errores a
 propósito** (uno por vez, restaurando después) y se verificó que alguna prueba se rompiera:
 
 | Error introducido | Detectado por |
@@ -132,14 +135,20 @@ propósito** (uno por vez, restaurando después) y se verificó que alguna prueb
 | Mostrar lo guardado aun con la sesión vencida | `misReservas` (2 pruebas) |
 | No borrar las reservas guardadas al cerrar sesión | `AuthContext` (2 pruebas) |
 | Que un fallo al borrar la copia local rompa el cierre de sesión | `AuthContext` |
+| La dirección elegida en la app deja de tener prioridad sobre la del entorno | `config` (4 pruebas) |
+| Aceptar direcciones con ruta (`http://IP:3000/api`) | `config` |
+| Dar el mapa por disponible en Android sin clave de Google | `mapa` (2 pruebas) |
+| No cerrar la sesión al cambiar de servidor | `selectorServidor` |
+| Dar por buena cualquier respuesta de `/salud` | `servidor` (2 pruebas) |
+| Guardar sin preguntar cuando la dirección no responde | `selectorServidor` |
 
 La primera vez la mutación de `aFechaLocal` **no** se detectaba (el entorno estaba en UTC):
 por eso las pruebas fijan la zona horaria.
 
 ### 4.5 Cobertura medida
 
-Sobre `src/servicios`, `src/contexto`, `src/componentes` y `src/providers`: **95,1 % de sentencias y
-93,6 % de ramas**. Todos los archivos superan el 90 % de sentencias, salvo `db.ts` (69 %: sus
+Sobre `src/servicios`, `src/contexto`, `src/componentes` y `src/providers`: **95,3 % de sentencias y
+93,3 % de ramas**. Todos los archivos superan el 90 % de sentencias, salvo `db.ts` (69 %: sus
 funciones de `reservas_locales` y la preferencia de complejo no las usa ninguna pantalla). El punto más
 flojo es `reservas.ts` en ramas (73 %): varios caminos de error de lectura.
 
@@ -222,6 +231,7 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | T-34 | Foto y video sin conexión | Abrir una ficha con conexión (esperar unos segundos), modo avión, volver a abrirla | La foto principal y el video ("Guardado offline") se ven |
 | T-60 | Wifi sin internet | Conectar el teléfono a una red local **sin salida a internet** (hotspot sin datos o un router sin WAN) con la API en la notebook → Mis reservas | Muestra las reservas **actuales** de la API, sin el cartel "Sin conexión" |
 | T-61 | Otra cuenta no ve reservas ajenas | Con `emiliano@mail.com` abrir Mis reservas; cerrar sesión; ingresar con `nuevo@demo.ar`; activar modo avión; abrir Mis reservas | Lista vacía: no aparecen las reservas de la cuenta anterior |
+| T-62 | Servidor desde la app | Entrada o Perfil → Servidor → Cambiar → una IP equivocada → Probar; luego la correcta → Probar → Guardar | Con la equivocada dice que no se pudo conectar (y al guardar pregunta); con la correcta dice "✓ La API responde.", cierra la sesión si había una y el catálogo carga. Al cerrar y abrir la app sigue la IP elegida |
 | T-56 | Grilla: precio | Abrir la disponibilidad de un espacio | Cada turno libre dice "Disponible · $12.000" |
 | T-57 | Grilla: mantenimiento y fijo | Día con bloqueo ("Cancha anegada") y un martes con reserva fija | El bloqueo muestra su motivo; la fija dice "Fijo" (no "Ocupado") |
 | T-58 | Tema guardado | Perfil → Apariencia → Oscuro; cerrar la app del todo y abrirla | Sigue en oscuro |
@@ -245,13 +255,15 @@ Requisitos: API corriendo con datos de demo (`pnpm db:reiniciar`), teléfono en 
 | N-05 | Cambio de dueño | Cerrar sesión y entrar con otra cuenta en el mismo teléfono | Los avisos llegan a la cuenta nueva, no a la anterior |
 | N-06 | Baja | Cerrar sesión | La tabla `dispositivos` ya no tiene el token |
 
-### 5.4 Prueba del build (APK `preview` o `production`)
+### 5.4 Prueba del build (APK `preview`)
 
-Con un build real, **no** con Expo Go (cambian los permisos y no se permite `http://`):
+Con el APK `preview`, **no** con Expo Go (cambian los permisos y el tráfico `http` a la red local lo habilita `app.config.js` sólo en `preview`/`development`). La API corre en la notebook:
 
 | ID | Caso | Resultado esperado |
 |---|---|---|
-| B-01 | Instalar el APK y abrir la app | Nombre "Deportes Villaguay" bajo el ícono; carga el catálogo desde la API publicada (https) |
+| B-01 | Instalar el APK y abrir la app | Nombre "Deportes Villaguay" bajo el ícono; abre sin cerrarse |
+| B-07 | Servidor en el APK | Servidor → Cambiar → `http://IP-de-la-notebook:3000` → Probar → Guardar (misma wifi, API encendida) | "✓ La API responde."; el catálogo carga por `http` y se puede iniciar sesión |
+| B-08 | Mapa en un APK sin clave de Google | Menú ☰ → Mapa de Complejos | Muestra la **lista de complejos** con distancia (si hay ubicación) y "Cómo llegar"; no se cierra la app |
 | B-02 | Escáner | Pide el permiso de cámara con el texto en castellano |
 | B-03 | Mapa | Pide la ubicación con el texto en castellano; si se niega, el mapa funciona igual. **En Android se dibuja sólo si el build tiene `GOOGLE_MAPS_API_KEY`** |
 | B-04 | Reportar foto | Pide acceso a fotos (sin pedir micrófono ni cámara) |

@@ -10,20 +10,25 @@ Todos se verificaron leyendo el código; los que dependen de un teléfono real s
 
 | Lista | Total | ✅ Resueltos | ⚠️ Parciales / aclarados | ✋ Aceptados | ⏳ Pendientes |
 |---|---|---|---|---|---|
-| Errores (`B-xx`) | 15 | 12 (B-01 a B-07, B-09, B-10, B-11, B-14, B-15) | 1 (B-12) | 2 (B-08, B-13) | 0 |
-| Brechas del PRD (`G-xx`) | 10 | 8 (G-01 a G-06, G-08, G-10) | 2 (G-07, G-09) | 0 | 0 |
+| Errores (`B-xx`) | 17 | 14 (B-01 a B-07, B-09, B-10, B-11, B-14 a B-17) | 0 | 3 (B-08, B-12, B-13) | 0 |
+| Brechas del PRD (`G-xx`) | 10 | 9 (G-01 a G-08, G-10) | 1 (G-09) | 0 | 0 |
 | Deuda técnica (`D-xx`) | 19 | 8 (D-01, D-02, D-08 a D-11, D-13, D-16) | 4 (D-03, D-04, D-06, D-07) | 1 (D-15) | 6 (D-05, D-12, D-14, D-17, D-18, D-19) |
+
+**Acordado con la cátedra:** se entrega un **build `preview`** y la demostración es en **Expo Go**, con la
+**API local**; no se publica nada, el reporte de foto puede quedar en el teléfono y los sensores son
+opcionales.
 
 **Lo que realmente queda pendiente, en orden de importancia para la entrega:**
 
-1. **G-09 · Build de producción:** hace falta `eas init`, la URL `https://` de la API en `eas.json`,
-   las credenciales de push (FCM / APNs) y la clave de Google Maps para Android. Depende de las
-   cuentas del grupo. Ver el [README §5](../README.md).
+1. **G-09 · Generar el build `preview`:** `eas init` y `eas build --platform android --profile preview`
+   (hace falta una cuenta de Expo). Nada más es obligatorio: el APK habla con la API local por `http`
+   (se habilita en `preview`) y la dirección se elige en la app. Las credenciales de push y la clave de
+   Google Maps son **opcionales** (sin ellas: sin push remotas y lista de complejos en lugar del mapa).
+   Ver el [README §5](../README.md).
 2. **D-14 · `pnpm-lock.yaml` de la API desactualizado:** hay que correr `pnpm install` y commitearlo
    o el CI de la API falla.
 3. **D-18 · Íconos y pantalla de inicio** de la plantilla de Expo.
-4. **G-07 · `expo-sensors`:** el PRD lo lista y no se usa.
-5. El resto es calidad interna (exceso de `any`, estilos repetidos, tres bases SQLite, la ruta
+4. El resto es calidad interna (exceso de `any`, estilos repetidos, tres bases SQLite, la ruta
    `/` ambigua, límites de las pantallas del personal) y no afecta lo que ve el usuario.
 
 ## 1. Lo que funciona bien (fortalezas para destacar)
@@ -40,7 +45,7 @@ Todos se verificaron leyendo el código; los que dependen de un teléfono real s
   video, SQLite, notificaciones, red) integradas en flujos con sentido.
 - **Tema claro/oscuro** (se recuerda entre sesiones) y estados de carga/vacío/error en las pantallas principales.
 - **Pantallas de administración completas** (agenda con ausentes, bloqueos con aviso previo de reservas afectadas, reservas fijas y precios), limitadas por rol en la interfaz y en la API.
-- **183 pruebas automáticas** de la app, comprobadas introduciendo errores a propósito, más las de la API; CI en la raíz del repositorio.
+- **215 pruebas automáticas** de la app, comprobadas introduciendo errores a propósito, más las de la API; CI en la raíz del repositorio.
 - **Documentación verificada contra el código:** cada ruta y función citada existe (auditoría automática) y los pasos del README se siguieron desde una copia limpia.
 
 ## 2. Errores conocidos
@@ -190,9 +195,9 @@ setVideoCache(destino.uri);
 - **Arreglo (M):** usar `servicios/db.ts` (ya escrito: `guardarEspaciosEnTelefono` /
   `leerEspaciosDelTelefono`) desde `obtenerEspacios()`: si hay red, guardar; si no, leer.
 
-### B-12 · "Reportar" no sube nada a la API — **media** ⚠️ ACLARADO
+### B-12 · "Reportar" no sube nada a la API — **media** ✋ SE ACEPTA
 
-> **Aclarado:** la foto de la ficha se guarda sólo en el teléfono porque la API **no tiene un endpoint para asociar una foto a un espacio** (`POST /archivos` sube un archivo genérico, pero nadie más lo vería). La alerta ahora dice "Foto guardada · Quedó guardada en este teléfono." en lugar de "¡Reporte subido!", que era engañoso. Quedaría como mejora de la API.
+> **Decisión:** la cátedra confirmó que es **aceptable** que el reporte de foto quede en el teléfono. La foto de la ficha se guarda sólo ahí porque la API **no tiene un endpoint para asociar una foto a un espacio** (`POST /archivos` sube un archivo genérico, pero nadie más lo vería). La alerta ahora dice "Foto guardada · Quedó guardada en este teléfono." en lugar de "¡Reporte subido!", que era engañoso. Quedaría como mejora de la API.
 
 - La galería de `espacio/[id].tsx` guarda en SQLite **local** y dice "¡Reporte subido!";
   la pantalla `estado-cancha.tsx` (ya eliminada) sólo mostraba un `Alert`. La API tiene `POST /archivos`
@@ -229,6 +234,32 @@ setVideoCache(destino.uri);
 > `borrarCacheReservas()`; un fallo al borrar no impide cerrar sesión. Cubierto por
 > `__tests__/AuthContext.test.tsx`. Caso manual T-61.
 
+### B-16 · El APK de preview no podía hablar con una API local — **alta** ✅ RESUELTO
+
+- **Dónde:** `app.json` / `eas.json` / `servicios/config.ts`.
+- **Causa:** con la entrega acordada (un APK de **preview** y la **API local**, sin publicar), la
+  dirección de la API estaba grabada al compilar (`EXPO_PUBLIC_API_URL`) y un build de producción de
+  Android e iOS **bloquea `http://`**. El APK habría quedado sin poder conectarse a la notebook, cuya IP
+  además cambia de una red a otra. La documentación anterior pedía publicar la API con `https`.
+
+> **Resuelto:** (1) la dirección se **elige desde la app** (cuadro *Servidor*, guardado en `kv-store`,
+> con `Probar` y `Guardar`); (2) en los perfiles `preview` y `development`, `app.config.js` habilita
+> `http` a la red local (`usesCleartextTraffic` en Android, `NSAllowsLocalNetworking` en iPhone) y en
+> `production` queda bloqueado (verificado con `expo config --type introspect` en los tres perfiles).
+> Cubierto por `config`, `servidor` y `selectorServidor` (verificado reintroduciendo errores).
+
+### B-17 · El mapa podía cerrar la app en un APK sin clave de Google — **media** ✅ RESUELTO
+
+- **Dónde:** `(tabs)/mapa.tsx` en un build de Android.
+- **Causa:** sin `GOOGLE_MAPS_API_KEY`, el plugin de `react-native-maps` **quita** la clave del manifiesto de
+  Android (se comprobó en su código y con `expo config`), y el SDK de mapas no puede dibujar (según
+  su comportamiento conocido, puede cerrar la app). Como el APK de preview es lo que se entrega, no se
+  podía depender de que alguien consiga la clave.
+
+> **Resuelto:** `mapaDisponible()` (`servicios/mapa.ts`) detecta ese caso y la pantalla muestra una
+> **lista de complejos** con distancia y "Cómo llegar" en lugar del mapa. En Expo Go y en iPhone el mapa
+> sigue funcionando sin clave. Cubierto por `mapa.test.ts`. **A confirmar en un APK real** (caso B-08).
+
 ## 3. Brechas respecto del PRD
 
 | ID | Requisito (PRD) | Estado | Esfuerzo |
@@ -239,9 +270,9 @@ setVideoCache(destino.uri);
 | G-04 | ✅ Pantallas del personal (§6): bloqueos, fijas, agenda, precio | Resuelto: **Agenda del día**, **Bloqueos**, **Reservas fijas** y **Precios** | — |
 | G-05 | ✅ Distinguir roles en la interfaz (D6) | Resuelto: escáner, agenda y bloqueos para el personal; reservas fijas y precios sólo para el administrador | — |
 | G-06 | Guardar fotos/video para verlos sin datos (§capacidades) | ✅ Resuelto (B-04) | — |
-| G-07 | ⚠️ `expo-sensors` y `kv-store` | Parcial: `kv-store` guarda el tema elegido. `expo-sensors` sigue instalado sin uso (el PRD lo lista entre las capacidades; un uso natural sería "agitar para recargar") | S |
+| G-07 | ✅ `expo-sensors` y `kv-store` | Resuelto por decisión de la cátedra: los **sensores son opcionales** y el **GPS** (`expo-location`) ya se usa en el mapa (distancia y complejo más cercano). `kv-store` guarda el tema y la dirección del servidor. `expo-sensors` sigue instalado sin uso | — |
 | G-08 | ✅ `react-native-maps` (PRD) | Resuelto: el mapa pasó de Leaflet en un `WebView` a `react-native-maps` (y se quitó `react-native-webview`). Pendiente de la entrega: la clave de Google Maps para los builds de Android | — |
-| G-09 | Build de producción con EAS (Entrega) | ⚠️ Configuración lista (`eas.json`, nombre, identificador, permisos). Falta lo que requiere cuentas: `eas init`, URL `https://` de la API en `eas.json`, credenciales de push, la clave `GOOGLE_MAPS_API_KEY` (mapa en Android) y generar el build | S |
+| G-09 | ⚠️ Build con EAS (Entrega) | Configuración lista (`eas.json`, nombre, identificador, permisos, `http` a la red local en `preview`). **Se entrega un build `preview`** (no hay que publicar). Falta generarlo: `eas init` y `eas build -p android --profile preview` (cuenta de Expo). Push y clave de Google Maps son opcionales | S |
 | G-10 | ✅ Mostrar el precio por turno y el motivo del bloqueo en la grilla | Resuelto: los turnos libres muestran su precio, el mantenimiento su motivo y una reserva fija dice "Fijo" (como el wireframe del PRD) | — |
 
 ### Cómo implementar el recordatorio de 2 horas (G-03)
@@ -281,7 +312,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | D-10 | ✅ Dependencias sin uso | Resuelto: se quitaron `axios`, `zod`, `react-hook-form`, `@hookform/resolvers`, `@expo/ui`, `expo-glass-effect`, `expo-status-bar`, `expo-symbols` y el `package.json` de la raíz. Se conserva `expo-sensors` (G-07) | — |
 | D-11 | ✅ Pantalla `estado-cancha.tsx` huérfana | Resuelto: se eliminó | — |
 | D-12 | Ruta `/` ambigua | `app/index.tsx` y `app/(tabs)/index.tsx` | S |
-| D-13 | ✅ Sin tests de la app | Resuelto en lo esencial: **183 pruebas automáticas** (lógica, servicios, sesión, notificaciones, caché, componentes) y CI. Faltan las pruebas de render de pantallas completas y de navegación (ver [07 §4.6](07-pruebas-y-calidad.md)) | — |
+| D-13 | ✅ Sin tests de la app | Resuelto en lo esencial: **215 pruebas automáticas** (lógica, servicios, sesión, notificaciones, caché, componentes) y CI. Faltan las pruebas de render de pantallas completas y de navegación (ver [07 §4.6](07-pruebas-y-calidad.md)) | — |
 | D-14 | Lockfile de la API desincronizado | `pnpm install` y commitear `pnpm-lock.yaml` (el CI usa `--frozen-lockfile`) | S |
 | D-15 | `http://` en claro | Aceptable en desarrollo; para producción usar `https://` (Render) | — |
 | D-16 | ✅ `Total a pagar` | Resuelto: ahora dice "Precio del turno" | — |
@@ -304,7 +335,7 @@ Dónde engancharlo: en `confirmar.tsx` tras `crearReserva` y en `index.tsx` tras
 | 7 ✅ | Recordatorio local de 2 h | G-03 |
 | 8 ✅ | Caché de espacios en SQLite + API nueva de archivos | B-11, B-04, G-06 |
 | 9 ✅ | `config.ts` único para la URL de la API | D-01 |
-| 10 ✅ | `eas.json`, nombre e identificador definitivos, permisos para iOS (el build en sí necesita las cuentas: ver README §5) | G-09 |
+| 10 ✅ | `eas.json`, nombre e identificador, permisos para iOS, `http` a la red local y **dirección del servidor elegible desde la app** (el build en sí necesita la cuenta de Expo: ver README §5) | G-09, B-16 |
 | 11 ✅ | Limpieza (código muerto, dependencias, `tsc` limpio) | D-08…D-11 |
 | 12 ✅ | Pantalla de ausentes y pantallas del personal (agenda, bloqueos, reservas fijas, precios) | G-02, G-04, G-05 |
 

@@ -6,6 +6,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import * as SecureStore from 'expo-secure-store';
 import { useTema } from '../../hooks/use-theme';
 import { useAuth } from '../../contexto/AuthContext';
+import { SelectorServidor } from '../../componentes/SelectorServidor';
 import { actualizarPerfilApi } from '../../servicios/auth';
 import { Usuario } from '../../tipos';
 
@@ -170,6 +171,11 @@ export default function PerfilScreen() {
               );
             })}
           </View>
+        </View>
+
+        {/* SERVIDOR DE LA API (para el APK de preview con la API local) */}
+        <View style={{ marginTop: 16 }}>
+          <SelectorServidor />
         </View>
 
       </ScrollView>

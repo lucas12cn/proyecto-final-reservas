@@ -25,6 +25,10 @@ flowchart TB
   estado local de cada pantalla (`useState`).
 - `app.json` activa `typedRoutes` (las rutas se chequean al compilar) y `reactCompiler`.
 - `scheme: "reservasvillaguay"` define el esquema de enlaces profundos.
+- **`app.config.js`** extiende `app.json` según el entorno de compilación: registra la clave de Google
+  Maps (`GOOGLE_MAPS_API_KEY`) y el indicador `extra.googleMapsConfigurada`, y en los perfiles de EAS
+  `preview` y `development` (no en `production`) permite el tráfico `http://` a la red local
+  (`usesCleartextTraffic` en Android con `expo-build-properties`; `NSAllowsLocalNetworking` en iPhone).
 - **Identidad y permisos** (`app.json`): `name` "Deportes Villaguay", `slug`
   `reservas-deportivas-villaguay`, `android.package` e `ios.bundleIdentifier`
   `com.villaguay.reservasdeportivas`. Los plugins `expo-camera`, `expo-location`,
@@ -130,7 +134,7 @@ Funcionamiento:
 
 | Función | Pedido | Notas |
 |---|---|---|
-| `BASE_URL` | — | Es `API_URL` de `config.ts` (reexportada: la usa `notificaciones.ts`) |
+| (dirección de la API) | — | Todas las funciones arman la URL con `apiUrl()` de `config.ts`, **en cada pedido**: un cambio de servidor rige de inmediato |
 | `iniciarSesionApi(email, contrasena)` | `POST /auth/ingreso` | Devuelve `datos` (`{ token, usuario }`). Si falla, lanza un `ErrorDeApi` con el mensaje de la API ("El email o la contraseña no son correctos.") |
 | `registrarUsuarioApi(nombre, email, telefono, contrasena)` | `POST /auth/registro` | Si falla, lanza con el mensaje de la API (p. ej. `EMAIL_YA_REGISTRADO`) |
 | `actualizarPerfilApi({ nombre?, telefono? })` | `PATCH /yo` | Exige token (`SIN_SESION` si no hay); devuelve el `Usuario` actualizado |
@@ -141,7 +145,7 @@ Todas las funciones de este archivo reportan errores con `lanzarSiError` (ver §
 
 ### 3.2 `servicios/reservas.ts`
 
-La URL base es `API_URL` (de `config.ts`). `verificarConexion()` usa
+La URL base es `apiUrl()` (de `config.ts`), que se evalúa en cada pedido. `verificarConexion()` usa
 `Network.getNetworkStateAsync()` y lanza `'Sin conexión a internet o red local.'` si
 `isConnected` es falso. `tokenObligatorio()` lee `tokenReserva` de `SecureStore` y, si no hay,
 lanza `errorSinSesion()` (código `SIN_SESION`).
@@ -227,13 +231,24 @@ la sesión se cierra sola y se vuelve al ingreso).
 
 ### 3.6 `servicios/config.ts`
 
-Exporta `API_URL`: `process.env.EXPO_PUBLIC_API_URL` (sin barra final) o, si no está definida,
-`http://192.168.1.6:3000`. Todos los servicios la usan. Expo incorpora las variables
-`EXPO_PUBLIC_*` al procesar el código y **guarda ese resultado en caché**: sin `npx expo start -c`
-(o `expo export --clear`) la app sigue con el valor anterior. Se comprobó empaquetando la app con
-y sin `--clear`. El
-archivo `my-app/.env.example` muestra el formato; cada integrante crea su `.env.local`
-(ignorado por git).
+Resuelve **en qué dirección está la API**. `apiUrl()` devuelve, de mayor a menor prioridad:
+
+1. **La que se escribió en la app** (cuadro *Servidor*, §4.17), guardada en `expo-sqlite/kv-store`
+   (clave `apiUrlPersonalizada`). Sobrevive al cierre de la app y rige **de inmediato**.
+2. **`EXPO_PUBLIC_API_URL`** (`.env.local`; ver `.env.example`), leída una vez al cargar el módulo.
+   Expo la incorpora al procesar el código y **guarda ese resultado en caché**: sin
+   `npx expo start -c` (o `expo export --clear`) la app sigue con el valor anterior (se comprobó).
+3. **`http://192.168.1.6:3000`** (`URL_POR_DEFECTO`).
+
+| Función | Qué hace |
+|---|---|
+| `apiUrl()` | Dirección vigente; la llaman todos los servicios en cada pedido |
+| `normalizarUrlApi(texto)` | Deja `http(s)://host[:puerto]`: saca espacios y barras finales, asume `http://` si falta el esquema y devuelve `null` si no es válida (no admite ruta: `http://IP:3000/api` es inválida) |
+| `fijarApiUrl(texto \| null)` | Guarda la dirección (o, con `null`/vacío, vuelve a la del entorno). Lanza un error con mensaje si no es válida; si no se puede escribir en `kv-store`, el cambio rige igual hasta cerrar la app |
+| `hayUrlPersonalizada()` | ¿Se está usando una escrita en la app? |
+
+**Por qué se puede elegir desde la app:** el APK de `preview` se usa con la API local de la
+demostración, y la IP de la notebook cambia de una red a otra: no se puede grabar al compilar.
 
 ### 3.7 `servicios/turnos.ts`
 
@@ -279,6 +294,21 @@ teléfono vería, sin conexión, las reservas de la cuenta anterior.
 `pesos(monto)` formatea un importe: `9500` → `"$9.500"` (punto como separador de miles, redondea
 decimales). Lo usan la grilla de disponibilidad y la pantalla de precios.
 
+### 3.11 `servicios/servidor.ts`
+
+`probarServidor(url)` comprueba que en esa dirección responda la API: `GET <url>/salud` con un
+**tiempo máximo de 5 s** (`AbortSignal.timeout`), y que la respuesta traiga `datos.estado === 'ok'`.
+Devuelve `{ ok: true }` o `{ ok: false, mensaje }` con el motivo listo para mostrar (sin conexión,
+error HTTP, o "responde, pero no parece ser la API de reservas").
+
+### 3.12 `servicios/mapa.ts`
+
+`mapaDisponible()` indica si se puede dibujar el mapa nativo: **sí** en iPhone (Apple Maps), **sí** en
+Expo Go (`ExecutionEnvironment.StoreClient`) y, en un APK de Android, **sólo si se compiló con la
+clave de Google Maps** (`extra.googleMapsConfigurada === true`, que registra `app.config.js`). Sin
+clave el manifiesto no declara la del SDK de mapas y el mapa no se dibuja (o cierra la app), así que
+la pantalla del mapa muestra la lista de complejos (§4.9).
+
 ## 4. Pantallas, una por una
 
 ### 4.1 Entrada — `app/index.tsx` (`LoginScreen`)
@@ -296,6 +326,8 @@ Pantalla "Bienvenido". Usa `AuthContext` como el resto de la app.
 - **`iniciarSesion()`:** valida que haya datos; vibra (`Haptics.impactAsync(Heavy)`); marca
   `biometriaPedida = true` (no pedir huella tras escribir la contraseña); `await login(...)` y
   `router.replace('/(tabs)')`. Un error se muestra con `Alert`.
+- **Servidor:** debajo del botón, el cuadro `SelectorServidor` (§4.17) muestra la dirección de la API y
+  permite cambiarla. Es lo primero que hay que revisar si la app no carga datos.
 
 ### 4.2 `app/login.tsx` y `app/registro.tsx`
 
@@ -456,6 +488,9 @@ Google Maps y en iPhone Apple Maps.
 - **Tema:** `userInterfaceStyle` sigue el modo claro/oscuro (lo aplica iOS; en Android el mapa
   de Google queda con su estilo claro).
 - **Sin datos:** si no hay complejos (sin conexión y sin catálogo guardado) muestra un aviso.
+- **Si el mapa no está disponible** (`mapaDisponible()` falso: APK de Android sin la clave de Google
+  Maps), la pantalla muestra una **lista de complejos** con nombre, cantidad y nombres de canchas, la
+  distancia (si hay ubicación) y el botón **Cómo llegar**, ordenada del más cercano al más lejano.
 - **Configuración nativa:** en Android los builds necesitan una clave de Google Maps
   (`GOOGLE_MAPS_API_KEY`, que `app.config.js` agrega al manifiesto; ver el
   [README §5.4](../README.md)); en Expo Go y en iPhone no.
@@ -472,6 +507,7 @@ Google Maps y en iPhone Apple Maps.
   `SecureStore.usuarioReserva`. (No actualiza el `usuario` del `AuthContext`; la vista usa
   `usuarioVisual` local.)
 - **Selector de tema** "Apariencia": Sistema / Claro / Oscuro (`cambiarTema`).
+- **Servidor:** el cuadro `SelectorServidor` (§4.17), también disponible sin sesión.
 - **Salir:** `Alert` de confirmación → `logout()` → `router.replace('/login')`.
 
 ### 4.11 `(tabs)/_layout.tsx` — barra de pestañas y menú
@@ -567,6 +603,20 @@ Piezas de formulario compartidas por bloqueos y reservas fijas, todas con los co
 | `SelectorDia({ fecha, minimo, onCambiar })` | ‹ Hoy 03/11 ›: elige un día (`desplazarDia`); `minimo` impide ir hacia atrás |
 | `Paso({ valor, min, max, onCambiar, formato })` | − 14:00 +: sube o baja un número dentro de un rango |
 | `ListaEspacios({ espacios, seleccionados, onCambiar, unico })` | Espacios agrupados por complejo; casillas (varios, con "Todas") o círculos (uno) |
+
+### 4.17 `componentes/SelectorServidor.tsx`
+
+Muestra el servidor vigente ("Servidor" o "Servidor (elegido en la app)") y un botón **Cambiar** que abre
+un cuadro para escribir la dirección. Se usa en la pantalla de entrada (con `colores` propios, porque
+esa pantalla es siempre oscura) y en el Perfil.
+
+- **Probar:** normaliza la dirección (`normalizarUrlApi`; `192.168.0.10:3000` → `http://192.168.0.10:3000`)
+  y llama a `probarServidor`; muestra "✓ La API responde." o el motivo del fallo.
+- **Guardar:** prueba primero; si la API **no** responde, pregunta "¿Guardar la dirección igual?"
+  (la IP puede ser correcta y la API estar apagada todavía).
+- **Al cambiar de servidor se cierra la sesión** (`logout()`): un token es de **un** servidor. Guardar la
+  misma dirección que ya estaba no cierra nada.
+- **Volver a la de fábrica:** `fijarApiUrl(null)`.
 
 ## 5. Convenciones del código de la app
 

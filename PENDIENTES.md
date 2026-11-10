@@ -1,7 +1,12 @@
 # Tareas pendientes del grupo
 
+> **Acordado con la cátedra (ya decidido, no hace falta volver a preguntarlo):**
+> se entrega un **build `preview`**; la **demostración se hace en Expo Go**; **no hay que publicar** nada
+> y la **API local alcanza**; es **aceptable** que el reporte de foto quede en el teléfono; y los
+> **sensores son opcionales** (el GPS del mapa ya cuenta).
+>
 > **Estado al cierre:** el código de la app y la integración de notificaciones push en la API están
-> terminados y verificados **en una computadora** (183 pruebas automáticas de la app, 302 + 25 + 1161
+> terminados y verificados **en una computadora** (215 pruebas automáticas de la app, 302 + 25 + 1161
 > de la API, bundles de Android e iOS, README seguido desde una copia limpia). Todo lo que figura
 > acá **no se pudo hacer desde la computadora donde se desarrolló**, porque necesita: **cuentas**
 > del grupo, **teléfonos reales**, **decisiones** del grupo o **datos** que sólo ustedes tienen.
@@ -33,55 +38,45 @@
 | 3 | [P-03](#p-03) | Comprobar que el CI de GitHub pasa | 🔴 | S–M | P-02 | | ☐ |
 | 4 | [P-04](#p-04) | Completar los datos del grupo en la documentación | 🔴 | S | Los datos del grupo | | ☐ |
 | 5 | [P-05](#p-05) | Que cada integrante tenga el entorno funcionando | 🔴 | M | Teléfono, wifi | | ☐ |
-| 6 | [P-06](#p-06) | **Probar todo en teléfonos reales** | 🔴 | L | Teléfonos | | ☐ |
-| 7 | [P-07](#p-07) | Decidir y preparar cómo se hace la demostración | 🔴 | S | Decisión D-A | | ☐ |
-| 8 | [P-08](#p-08) | Publicar la API en internet (Render + Supabase) | 🟡 | M | Cuentas, D-A | | ☐ |
-| 9 | [P-09](#p-09) | Generar el build con EAS | 🟡 | M | Cuenta Expo, P-08 | | ☐ |
-| 10 | [P-10](#p-10) | Configurar las notificaciones push del build | 🟡 | M | Cuenta Firebase | | ☐ |
-| 11 | [P-11](#p-11) | Clave de Google Maps para Android | 🟡 | S–M | Cuenta Google Cloud | | ☐ |
-| 12 | [P-12](#p-12) | Íconos y pantalla de inicio propios | 🟡 | M | Diseño | | ☐ |
-| 13 | [P-13](#p-13) | Preparar y ensayar la defensa | 🔴 | L | Todos | | ☐ |
-| 14 | [P-14](#p-14) | Congelar la versión final | 🔴 | S | Todo lo anterior | | ☐ |
+| 6 | [P-06](#p-06) | **Probar todo en teléfonos reales** (Expo Go) | 🔴 | L | Teléfonos | | ☐ |
+| 7 | [P-07](#p-07) | Preparar la demostración en Expo Go | 🔴 | S | P-06 | | ☐ |
+| 8 | [P-09](#p-09) | **Generar el build `preview` (APK) y probarlo con la API local** | 🔴 | M | Cuenta de Expo | | ☐ |
+| 9 | [P-12](#p-12) | Íconos y pantalla de inicio propios | 🟡 | M | Diseño | | ☐ |
+| 10 | [P-13](#p-13) | Preparar y ensayar la defensa | 🔴 | L | Todos | | ☐ |
+| 11 | [P-14](#p-14) | Congelar la versión final | 🔴 | S | Todo lo anterior | | ☐ |
+| — | [P-10](#p-10) | Notificaciones push en el APK | 🟢 opcional | M | Cuenta Firebase | | ☐ |
+| — | [P-11](#p-11) | Clave de Google Maps para el APK | 🟢 opcional | S–M | Cuenta Google Cloud | | ☐ |
+| ✂ | P-08 | ~~Publicar la API~~ | no aplica | — | La API local alcanza | — | — |
 
-**Ruta crítica mínima** (si el tiempo es muy poco): **P-01 → P-02 → P-04 → P-05 → P-06 → P-07 → P-13**.
-Con eso la app se puede mostrar y defender con Expo Go. P-08 a P-11 son para el build de producción.
+**Ruta crítica:** **P-01 → P-02 → P-04 → P-05 → P-06 → P-07 → P-09 → P-13**. Sin P-09 la app se puede
+mostrar y defender con Expo Go, pero **falta el build `preview` que hay que entregar**.
 
 ---
 
-## 2. Decisiones que tiene que tomar el grupo
+## 2. Decisiones
 
-Resuélvanlas **antes** de empezar las tareas que dependen de ellas.
+### 2.1 Ya resueltas por la cátedra
 
-### D-A · ¿Cómo se hace la demostración?
+| Tema | Respuesta | Efecto en la app y en las tareas |
+|---|---|---|
+| Qué se entrega | Un **build `preview`** (APK) | Tarea **P-09** (obligatoria) |
+| Cómo se hace la demostración | En **Expo Go** | Tarea **P-07**; en Expo Go **Android no recibe push remotas** (un iPhone sí) |
+| ¿Hay que publicar? | **No**; la **API local es suficiente** | Se descarta publicar la API (P-08) y subir a una tienda. Pero un APK **no puede grabar la IP de la notebook** y los builds de producción **bloquean `http://`**: por eso se agregó, en la app, el cuadro **Servidor** (se elige la IP) y se habilitó `http` a la red local en `preview`/`development` |
+| Reporte de foto sólo en el teléfono | **Aceptable** | B-12 cerrado (`docs/08`) |
+| Sensores | **Opcionales** (ej. GPS) | El GPS ya se usa en el mapa; `expo-sensors` no hace falta |
 
-| Opción | Cómo es | Ventajas | Desventajas |
-|---|---|---|---|
-| **A. Expo Go + API en una notebook** (misma wifi) | La API corre en la computadora; el teléfono abre la app con Expo Go | La más simple y segura; no necesita cuentas ni build; mapa sin clave | **Android no recibe notificaciones push remotas** en Expo Go (desde Expo SDK 53). En iPhone sí. El recordatorio local de 2 h **no** depende de esto |
-| **B. APK `preview` + API publicada** | Build de EAS instalado en el teléfono, hablando con la API en Render (https) | Es lo más parecido a "producción" y a lo que pide el PRD | Requiere P-08, P-09, P-10 y P-11 (cuentas de Expo, Render, Supabase, Firebase, Google Cloud) |
-| **C. Development build + API en una notebook** | `eas build --profile development` en Android; Metro y la API corren en la computadora | Muestra push en **Android** sin publicar la API | Requiere cuenta de Expo y P-10; todo sigue dependiendo de la notebook |
+### 2.2 Todavía a cargo del grupo
 
-**Recomendación:** hacer la demostración con la **opción A** (la de menor riesgo) y, si el docente
-exige el *build de producción con EAS*, generar además la **opción B** como entregable. Para mostrar
-push, usar un **iPhone con Expo Go** o la opción C. Decidan y anótenlo: ______________________
+**D-B · ¿Se mantiene el identificador de la app?** Es `com.villaguay.reservasdeportivas` (Android
+`package` e iOS `bundleIdentifier` en `my-app/app.json`). Cámbienlo **antes del primer build** si
+prefieren otro (por ejemplo con el dominio de la facultad); después de publicar en una tienda ya no se
+puede cambiar (aquí no se publica). Decisión: ______________________
 
-### D-B · ¿Se mantiene el identificador de la app?
+**D-C · Preguntas que todavía conviene confirmar por escrito**
 
-El identificador es `com.villaguay.reservasdeportivas` (Android `package` e iOS `bundleIdentifier`
-en `my-app/app.json`). **No se puede cambiar una vez publicada en Google Play.** Si prefieren otro
-(por ejemplo con el dominio de la facultad), cámbienlo **antes del primer build de producción** y
-creen el proyecto de Firebase (P-10) con ese mismo nombre. Decisión: ______________________
-
-### D-C · Preguntas para el docente
-
-Conviene confirmarlas por escrito (aula virtual o mail) para no depender de la memoria:
-
-- [ ] ¿Se exige el **build de producción con EAS** en la entrega, o alcanza con mostrar la app en Expo Go?
-- [ ] Si se exige, ¿hay que **publicar en Google Play** o alcanza con un APK instalable?
-- [ ] ¿La entrega se hace con la **API de la cátedra publicada en Render** o con una API local?
-- [ ] ¿Es aceptable que el **reporte de foto** de una cancha quede sólo en el teléfono? (la API no
-      tiene un endpoint para asociar una foto a un espacio; ver B-12 en `docs/08`).
-- [ ] El PRD lista `expo-sensors`: ¿se espera un uso concreto? (hoy no se usa; ver O-01).
 - [ ] Formato de entrega de la documentación (repositorio, PDF, presentación).
+- [ ] ¿El APK se entrega como **archivo** (enlace de EAS / copia del `.apk`) o hay que subirlo a algún lado?
+- [ ] ¿Cuenta de Expo propia o de la cátedra?
 
 ---
 
@@ -220,7 +215,8 @@ descritos en `docs/07-pruebas-y-calidad.md §5`:
 | Encargado: bloqueo con aviso previo | T-45, T-46 | |
 | Administrador: fijas y precios | T-50, T-51, T-53 | |
 | Tema y recordatorio | T-20, T-58, T-31 | |
-| Notificaciones push (iPhone, o development build) | N-01, N-02, N-04 | |
+| **Servidor elegido desde la app** | **T-62** | |
+| Notificaciones push (**sólo iPhone** con Expo Go; Android no las recibe en Expo Go) | N-01, N-02, N-04 | |
 
 **Paso 2 · Plan completo.** Los **76 casos** del plan manual, repartidos entre los integrantes.
 Registren cada resultado (§6.2).
@@ -236,102 +232,91 @@ que bloquean la demostración están corregidas.
 ---
 
 <a id="p-07"></a>
-### P-07 · Decidir y preparar cómo se hace la demostración 🔴 · S
+### P-07 · Preparar la demostración en Expo Go 🔴 · S
 
-Según la decisión **D-A**:
+Ya está decidido: **Expo Go + API local**. Preparar:
 
-- **Opción A (Expo Go):** dejar **una cuenta de jugador y una de encargado** ya probadas; la API
-  corriendo en una notebook; los dos teléfonos en la misma wifi (o un *hotspot*); `npx expo start -c`
-  ya hecho. Guion en `docs/09-guia-de-defensa.md §5`.
-- **Opción B:** ver P-08 a P-11.
-- **Opción C:** `eas build --platform android --profile development` y `npx expo start --dev-client`.
+- **Una cuenta de jugador y una de encargado** ya probadas; la API corriendo en una notebook; los dos
+  teléfonos en la misma wifi (o un *hotspot*). La dirección se configura en la app (**Servidor**) o con
+  `.env.local` + `npx expo start -c`.
+- **Qué NO se puede mostrar:** push remotas en **Android** (Expo Go no las soporta). Si quieren mostrarlas,
+  usen un **iPhone** con Expo Go. El **recordatorio local** de 2 h no depende de esto.
+- Guion en `docs/09-guia-de-defensa.md §5`.
 
 **Listo cuando:** el guion de la demostración se hizo completo **dos veces seguidas** sin fallas.
 
 ---
 
 <a id="p-08"></a>
-### P-08 · Publicar la API en internet (Render + Supabase) 🟡 · M
+### P-08 · ~~Publicar la API en internet~~ — **no aplica**
 
-**Necesario para la opción B** (los builds de producción sólo aceptan `https://`, no una IP local).
-Los pasos completos están en **`api-reservas-deportivas/README.md` §11** ("Publicar la API en
-internet (Render + Supabase, gratis)"). Resumen: crear el proyecto de **Supabase** (base y archivos),
-crear el servicio en **Render** con el *Blueprint* `render.yaml` y cargar las variables que pide.
-
-Detalles que conviene saber:
-
-- La capa gratuita de Render **se duerme** si nadie la usa: la primera respuesta tarda un rato.
-  **Despiértenla minutos antes de la demostración** (abrir `https://TU-API.onrender.com/salud`).
-- Para recibir push desde la API publicada, la variable debe ser **`NOTIFICACIONES=expo`**
-  (el valor por defecto sólo escribe en la consola).
-- Comprobar `https://TU-API.onrender.com/salud` y `https://TU-API.onrender.com/docs`.
-
-**Listo cuando:** `/salud` responde en `https` y se puede iniciar sesión con `emiliano@mail.com` desde Swagger.
+La cátedra confirmó que **la API local alcanza**. (Si algún día quisieran publicarla: `api-reservas-deportivas/README.md §11`,
+Render + Supabase; el APK tendría que apuntar a una dirección `https://`.)
 
 ---
 
 <a id="p-09"></a>
-### P-09 · Generar el build con EAS 🟡 · M
+### P-09 · Generar el build `preview` (APK) y probarlo con la API local 🔴 · M
 
-Detalle completo en `README.md` §5. Resumen:
+Es **el entregable**. Detalle completo en `README.md §5`.
 
 ```bash
 cd my-app
 npm install -g eas-cli          # o: npx eas-cli <comando>
 eas login                       # cuenta de expo.dev (gratis)
 eas init                        # agrega extra.eas.projectId a app.json → COMMITEARLO
+eas build --platform android --profile preview     # EAS entrega un enlace/QR para instalar el APK
 ```
 
-1. En `my-app/eas.json`, reemplazar `https://REEMPLAZAR-POR-LA-URL-DE-LA-API` por la URL de P-08
-   en los perfiles `preview` y `production`. **Tiene que ser `https://`.**
-2. `eas build --platform android --profile preview` → EAS entrega un enlace/QR para **instalar el APK**.
-3. Instalar el APK en un teléfono y repetir el **recorrido de humo** (P-06), más los casos **B-01 a B-06**.
-4. Para iPhone: `eas build --platform ios` requiere una **cuenta de Apple Developer (paga)**. Si no la
-   tienen, se queda como "no probado en iOS" (y se aclara en la defensa).
+**No hace falta tocar `eas.json` ni tener una URL `https`.** Probarlo, con la API local:
 
-**Listo cuando:** el APK instalado inicia sesión, muestra el catálogo y permite reservar contra la API publicada.
+1. Levantar la API en la notebook (`pnpm dev`) y anotar la IP que imprime.
+2. Instalar el APK en un teléfono **de la misma wifi**.
+3. Abrir la app → **Servidor → Cambiar** → `http://IP:3000` → **Probar** → **Guardar**.
+4. Repetir el **recorrido de humo** (P-06) y los casos **B-01, B-07 y B-08** del plan (`docs/07 §5.4`).
+
+Cosas a tener en cuenta:
+
+- **Sin la clave de Google Maps el APK no dibuja el mapa**: muestra la **lista de complejos** con "Cómo llegar"
+  (diseñado así a propósito; ver P-11). **Sin credenciales de push el APK no recibe push remotas** (ver P-10).
+  Las dos cosas son aceptables para esta entrega, pero conviene **decirlo** en la defensa.
+- **iPhone:** `eas build --platform ios` necesita una cuenta de Apple Developer (paga). Si no la tienen, se
+  entrega sólo Android y se aclara.
+- ⚠️ **Nunca se probó un APK real.** El mapa alternativo (B-08) y el acceso `http` a la red local (B-07) están
+  verificados con pruebas y con `expo config`, pero **hay que confirmarlos en el teléfono**.
+
+**Listo cuando:** el APK instalado muestra el catálogo y permite iniciar sesión y reservar contra la API local
+(tras elegir el servidor), y el `.apk` o su enlace está guardado (P-14).
 
 ---
 
 <a id="p-10"></a>
-### P-10 · Configurar las notificaciones push del build 🟡 · M
+### P-10 · Notificaciones push en el APK 🟢 opcional · M
 
-Sin esto, el build **no recibe** push (aunque `NOTIFICACIONES=expo` esté bien en la API).
+**No hace falta** para esta entrega (la demostración es en Expo Go). Sirve si quieren que el **APK** reciba
+push remotas.
 
-**Android**
+**Android:** (1) crear un proyecto en **Firebase** con una app Android de paquete `com.villaguay.reservasdeportivas`
+(o el de D-B); (2) bajar `google-services.json`, ponerlo en `my-app/` y agregar `"googleServicesFile": "./google-services.json"`
+dentro de `android` en `app.json`; (3) subir a EAS la clave de cuenta de servicio **FCM V1** con `eas credentials`
+(Android → Google Service Account → FCM V1). **No commitear** esa clave. **iPhone:** una APNs key (cuenta de Apple Developer).
 
-1. Crear un proyecto en **Firebase** y agregar una app Android con el paquete **`com.villaguay.reservasdeportivas`** (o el de D-B).
-2. Descargar **`google-services.json`**, ponerlo en `my-app/` y agregar en `app.json`, dentro de `android`:
-   `"googleServicesFile": "./google-services.json"`.
-3. Generar una **clave de cuenta de servicio FCM V1** y subirla a EAS con `eas credentials`
-   (Android → Google Service Account → FCM V1).
-4. **No commitear** la clave de cuenta de servicio.
-
-**iPhone:** subir una **APNs key** a EAS (necesita cuenta de Apple Developer).
-
-**Probar:** casos **N-01 a N-06** del plan (con el APK instalado e iniciada la sesión).
-
-**Listo cuando:** `POST /dispositivos/prueba` (desde Swagger, con el token del usuario) hace llegar
-"Notificación de prueba" al teléfono, y el bloqueo de un turno reservado (N-02) avisa al jugador.
+**Probar:** `NOTIFICACIONES=expo` en el `.env` de la API y los casos **N-01 a N-06**.
 
 ---
 
 <a id="p-11"></a>
-### P-11 · Clave de Google Maps para Android 🟡 · S–M
+### P-11 · Clave de Google Maps para el APK 🟢 opcional · S–M
 
-Sin la clave, **en un build de Android el mapa no se dibuja** (en Expo Go y en iPhone no hace falta).
-Detalle en `README.md` §5.4:
+**No hace falta**: sin ella el APK muestra la lista de complejos (B-17). Sirve si quieren el **mapa** en el APK
+(en Expo Go y en iPhone ya funciona sin clave). Detalle en `README.md §5.4`:
 
-1. En **Google Cloud**: crear un proyecto y habilitar **Maps SDK for Android**.
-2. Crear una **API key** y restringirla a apps Android con el paquete de D-B y el **SHA-1** del
-   certificado de firma (aparece en *Credentials* del proyecto en expo.dev **después del primer build**).
-3. Cargarla como variable de EAS **`GOOGLE_MAPS_API_KEY`** (dashboard de expo.dev → *Environment
-   variables*, o `eas env:create`) para los entornos `preview` y `production`.
-4. Hacer un nuevo build y probar **T-21, T-35 y T-36** en el APK.
-
-> El orden importa: el SHA-1 sólo se conoce después de un primer build, así que habrá **dos builds**.
-
-**Listo cuando:** en el APK se ve el mapa con los dos complejos y el botón "Cómo llegar" abre la ruta.
+1. En **Google Cloud**: proyecto + habilitar **Maps SDK for Android**.
+2. Crear una **API key** restringida al paquete de D-B y al **SHA-1** del certificado de firma (aparece en
+   *Credentials* del proyecto en expo.dev **después del primer build**).
+3. Cargarla como variable de EAS **`GOOGLE_MAPS_API_KEY`** (dashboard de expo.dev → *Environment variables*, o
+   `eas env:create`) para el entorno `preview`, y **hacer un nuevo build** (habrá dos: el SHA-1 sólo se conoce tras el primero).
+4. Probar **T-21, T-35 y T-36** en el APK.
 
 ---
 
@@ -375,11 +360,12 @@ Todo el material está en `docs/09-guia-de-defensa.md`.
 **Checklist del día de la defensa**
 
 - [ ] Teléfonos **cargados**, con Expo Go (o el APK) instalado y la sesión cerrada.
-- [ ] Notebook con la API corriendo (`pnpm dev`) y `GET /salud` respondiendo; Render **despierto** si se usa.
-- [ ] Misma wifi (o *hotspot*) y la **IP correcta** en `.env.local` + `npx expo start -c`.
+- [ ] Notebook con la API corriendo (`pnpm dev`) y `GET /salud` respondiendo.
+- [ ] Misma wifi (o *hotspot*) y la **IP correcta**: en la app (**Servidor → Probar**) o en `.env.local` + `npx expo start -c`.
 - [ ] Cuentas de demo: `emiliano@mail.com` (jugador), `marcelo@villaguay.demo.ar` (encargado), `nahuel@villaguay.demo.ar` (administrador); contraseña `villaguay2026`.
 - [ ] Base **reiniciada** justo antes (`pnpm db:reiniciar`) para tener datos de demo limpios.
-- [ ] Si se muestra push: `NOTIFICACIONES=expo` en el `.env` y el teléfono con permiso concedido.
+- [ ] Si se muestra push: **iPhone** con Expo Go, `NOTIFICACIONES=expo` en el `.env` de la API y permiso concedido (Android no recibe push en Expo Go).
+- [ ] Tener a mano el **APK** instalado en un teléfono, por si piden ver el build entregado.
 
 **Listo cuando:** todos pueden explicar su tema sin leer, y el ensayo completo entra en el tiempo.
 
@@ -390,7 +376,7 @@ Todo el material está en `docs/09-guia-de-defensa.md`.
 
 - [ ] Todo en `main`, CI en verde (P-03) y `git status` limpio.
 - [ ] `git tag v1.0.0 && git push --tags`.
-- [ ] Guardar **fuera del repositorio** (Drive o similar): el **APK final**, el **video** del recorrido y un **PDF o copia** de la documentación.
+- [ ] Guardar **fuera del repositorio** (Drive o similar): el **APK `preview` final**, el **video** del recorrido y un **PDF o copia** de la documentación.
 - [ ] **No tocar más el código** después del ensayo final (cada cambio de último momento necesita volver a probar todo).
 
 **Listo cuando:** existe la etiqueta `v1.0.0` y la copia de respaldo.
@@ -406,12 +392,10 @@ un servicio externo o de GitHub. Hay que comprobarlas y, si fallan, avisar:
 |---|---|---|
 | Que los **workflows de GitHub** pasen | Nunca se ejecutaron en GitHub | P-03 |
 | Que la app **se vea y se mueva bien** en un teléfono | Sólo se comprobó que compila y que la lógica anda | P-06 |
-| **Push remotas** | Necesitan teléfono real y credenciales | P-10; casos N-01 a N-06 |
+| El **APK `preview`** instala, abre y habla con la API local por `http` | Nunca se generó un APK; la configuración de `http` y el mapa alternativo se verificaron con pruebas y `expo config` | P-09; casos B-01, B-07, B-08 |
 | **Recordatorio local de 2 h** llega a la hora correcta | Requiere esperar la hora real | Caso T-31 |
-| **Build de EAS** (APK/AAB) | Necesita las cuentas del grupo | P-09 |
-| **Mapa de Android** con la clave | Necesita la clave de Google | P-11 |
-| **iPhone** (Face ID, Apple Maps, push) | Sin dispositivo ni cuenta de Apple | P-09, P-10 |
-
+| **Push remotas** (sólo iPhone en Expo Go; Android sólo con credenciales en el APK) | Necesitan teléfono real | Casos N-01 a N-06 |
+| **iPhone** (Face ID, Apple Maps) | Sin dispositivo ni cuenta de Apple | P-06 (en Expo Go) |
 ---
 
 ## 5. Si algo falla en el teléfono: por dónde mirar primero
@@ -421,7 +405,8 @@ del código, los que conviene mirar primero.
 
 | Síntoma | Causa posible | Dónde mirar |
 |---|---|---|
-| La IP nueva **no se aplica** | Caché de Expo | `npx expo start -c` (README §3.2) |
+| La app **no carga datos** (Expo Go o APK) | IP equivocada, API apagada o redes distintas | **Servidor → Probar** en la app; README §3.2 |
+| La IP de `.env.local` **no se aplica** | Caché de Expo | `npx expo start -c`, o cambiarla desde **Servidor** (no tiene esta trampa) |
 | "Sin conexión" o listas vacías en una wifi sin internet | Ya corregido (B-14); si reaparece, mirar el `console.log` de `misReservas` | `src/servicios/misReservas.ts` |
 | La **foto o el video** no se ven sin conexión (T-34) | La descarga con la API nueva de archivos falló | Log "No se pudo guardar el archivo en el teléfono"; `src/servicios/archivos.ts` |
 | Al **tocar una notificación** con la app cerrada no navega (N-04) | Espera la pantalla de huella/PIN o la ruta no está lista | `NavegarAlTocarAviso` en `src/app/_layout.tsx` |
@@ -429,7 +414,7 @@ del código, los que conviene mirar primero.
 | Un **modal** (bloqueos, fijas, precios) queda tapado por el teclado en Android | `KeyboardAvoidingView` sin comportamiento en Android | Los `<KeyboardAvoidingView>` de `bloqueos.tsx`, `fijas.tsx`, `precios.tsx` |
 | El **botón "atrás"** de Android vuelve a la pantalla de entrada | Dos rutas resuelven a `/` (D-12) | `app/index.tsx` y `app/(tabs)/index.tsx`; se navega siempre con `router.replace('/(tabs)')` |
 | El **escáner** no abre la cámara | Permiso denegado o el teléfono no tiene huella enrolada | `(tabs)/escaner.tsx`, `inicializarEscaner()` |
-| El **mapa** no se dibuja (sólo en APK de Android) | Falta `GOOGLE_MAPS_API_KEY` | P-11; `app.config.js` |
+| En el **APK** se ve una lista de complejos y no el mapa | Es lo esperado sin `GOOGLE_MAPS_API_KEY` (B-17) | P-11; `app.config.js`; `servicios/mapa.ts` |
 | `getExpoPushTokenAsync` falla | Falta `projectId` (`eas init`) o Android con Expo Go | `registrarParaPush()` en `notificaciones.ts` |
 | La **grilla** no muestra "Hoy" bien de noche | (corregido) fecha local en vez de UTC | Caso T-29; `aFechaLocal` en `servicios/turnos.ts` |
 
@@ -444,9 +429,9 @@ No se asumió cuántos son: repartan por **lo que cada uno tenga a mano**.
 | Quién | Tareas que le conviene tomar |
 |---|---|
 | El que tiene la **cuenta de Expo** y maneja EAS | P-09, P-10 (parte EAS), P-14 |
-| El que tiene un teléfono **Android** | P-06 (Android), P-11, caso del escáner y mapa |
+| El que tiene un teléfono **Android** | P-06 (Android), P-09 (instalar y probar el APK), escáner y mapa |
 | El que tiene un **iPhone** (si hay) | P-06 (iOS: push con Expo Go, Face ID) |
-| El que maneja la **API / servidor** | P-02, P-08, base de datos de demo |
+| El que maneja la **API / servidor** | P-02, base de datos de demo, P-07 (que la API esté lista) |
 | El que **coordina** | P-01, P-03, P-04, P-13 (ensayos), P-14 |
 
 ### 6.2 Tabla para registrar los resultados de P-06
@@ -474,17 +459,15 @@ Gravedad:       bloquea la demo / molesta / cosmética
 
 ## 7. Mejoras opcionales 🟢
 
-Sólo si sobra tiempo **después** de P-06 y P-13. Ninguna es necesaria para entregar.
+Sólo si sobra tiempo **después** de P-06 y P-13. Ninguna es necesaria para entregar. (Ya no figuran el uso de `expo-sensors` ni la subida de la foto del reporte: la cátedra los dio por opcionales / aceptables.)
 
 | # | Mejora | Esfuerzo | Detalle |
 |---|---|---|---|
-| O-01 | **Usar `expo-sensors`** (el PRD lo lista y hoy no se usa) | M | Por ejemplo, **agitar el teléfono para recargar** "Mis reservas" con `Accelerometer` y una vibración (`expo-haptics`). Confirmar antes con el docente (D-C) |
 | O-02 | Reducir los **`any`** (D-05) | M | Quedan 22. Los más cargados: `src/app/index.tsx` (4), `espacio/disponibilidad.tsx` (3), `espacio/[id].tsx` (3), `(tabs)/perfil.tsx` (3). Usar los tipos del PRD (`Espacio`, `Reserva`, `Turno`, `Usuario`) |
 | O-03 | **Editar reservas fijas** y **bloquear varios días** a la vez (D-19) | M | La API ya tiene `PATCH /fijas/:id`; un bloqueo hoy cubre un solo día |
 | O-04 | **Pruebas de render de pantallas** (D-13) | L | Empezar por "Mis reservas" (en línea y sin conexión), la agenda y el formulario de bloqueos, con Testing Library y `expo-router` simulado. Ver `docs/07 §4.6` |
 | O-05 | **Estilo oscuro del mapa en Android** | S–M | `userInterfaceStyle` sólo lo aplica iOS; en Android hace falta un JSON de estilo (`customMapStyle`) |
 | O-06 | **Pantalla de detalle de una reserva** | M | Para que el aviso "Reserva cancelada" lleve a la reserva concreta (B-13, hoy lleva a "Mis reservas") |
-| O-07 | **Subir la foto del reporte** de una cancha | L | Requiere un endpoint nuevo en la API (hoy no hay forma de asociar una foto a un espacio): hablar con la cátedra |
 | O-08 | Resolver la **ruta `/` ambigua** (D-12) | M | Funciona hoy; sólo vale la pena si en P-06 el botón "atrás" de Android molesta |
 | O-09 | Unificar las **tres bases SQLite** (D-06), componentes de interfaz reutilizables (D-17) | M–L | Calidad interna; no cambia lo que ve el usuario |
 | O-10 | **Auditoría de accesibilidad** | M | No se hizo: faltan `accessibilityLabel` en botones con sólo un ícono (✕, ‹, ›, tacho) y revisar contraste en modo oscuro |
@@ -500,6 +483,10 @@ Para no gastar tiempo en cosas que ya están decididas o resueltas:
 - **No tocar la API de la cátedra**, salvo `src/student-notifications/` y su módulo (lo único que les correspondía).
 - **No volver a Leaflet / WebView** para el mapa: el PRD pide `react-native-maps`.
 - **No "arreglar" B-08 ni B-13** (decididos en `docs/08`): son comportamientos aceptados.
+- **No publicar la API ni la app** (ni en Render ni en Google Play): la cátedra confirmó que no hace falta.
+- **No conseguir un certificado `https`** ni migrar a `production` para el preview: en `preview` el `http` a la red local ya está permitido.
+- **No conseguir la clave de Google Maps ni las credenciales de push** si no quieren: son opcionales (P-10, P-11).
+- **No agregar sensores**: son opcionales y el GPS del mapa ya cuenta.
 - **No reescribir la documentación**: ya está verificada contra el código. Sólo hay que completar los `COMPLETAR` (P-04).
 
 ---
@@ -513,5 +500,5 @@ El trabajo está listo para entregar cuando **todo** esto es cierto:
 - [ ] El **recorrido de humo** pasó en al menos **un Android** (y un iPhone, si hay) (P-06).
 - [ ] La **demostración** se ensayó completa, dos veces, dentro del tiempo (P-07, P-13).
 - [ ] Cada integrante puede explicar **su tema** y sabe **qué es de la cátedra y qué es del grupo** (P-13).
-- [ ] Si el docente exige el build de producción: **APK/AAB generado** y probado (P-08 a P-11).
+- [ ] El **APK `preview`** está generado, probado contra la API local (elegir el servidor en la app) y guardado (P-09).
 - [ ] Existe la etiqueta `v1.0.0` y un **respaldo** del APK, del video y de la documentación (P-14).

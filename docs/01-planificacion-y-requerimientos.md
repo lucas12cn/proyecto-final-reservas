@@ -56,7 +56,7 @@ elementos. **La app muestra el precio, no cobra.**
 | Plataforma | Android y iPhone (mayoría Android) |
 | Framework | React Native con Expo, TypeScript, Expo Router |
 | Estilos | `StyleSheet` (Unistyles/NativeWind opcionales) |
-| Entrega | Build de producción con EAS (configuración lista en `eas.json`; ver [README §5](../README.md)) |
+| Entrega | **Build `preview`** con EAS (APK) y demostración en Expo Go, con la API local: no se publica (acordado con la cátedra). Ver [README §5](../README.md) |
 | Datos | Al principio, datos inventados (`mocks`) detrás de una capa de servicios; luego la API de la cátedra |
 | Sesión | Token en `expo-secure-store`, nunca en `kv-store` |
 | Conectividad | La reserva y su QR deben verse **sin conexión** (la señal en la cancha es mala) |
@@ -75,7 +75,7 @@ y las diferencias están en [08](08-estado-actual-y-deuda-tecnica.md).
 | RF-02 | Filtrar por deporte y complejo | PRD §1 | ✅ (en el cliente) |
 | RF-03 | Ficha del espacio: fotos, características, precio, reglas | PRD §1 | ✅ `espacio/[id].tsx` |
 | RF-04 | Video del espacio (reproducción) | PRD §1 | ✅ `expo-video` |
-| RF-05 | Mapa de complejos y "cómo llegar" | PRD §1 | ✅ mapa nativo (`react-native-maps`), tarjeta por complejo con distancia y botón "Cómo llegar" |
+| RF-05 | Mapa de complejos y "cómo llegar" | PRD §1 | ✅ mapa nativo (`react-native-maps`), tarjeta por complejo con distancia y botón "Cómo llegar"; en un APK de Android sin clave de Google, lista de complejos |
 | RF-06 | Grilla de un espacio por día, 7 días (precio en los libres, motivo del mantenimiento, fijas) | PRD §2 | ✅ `espacio/disponibilidad.tsx` |
 | RF-07 | Turno pasado no reservable | PRD §2 | ✅ (cliente y servidor) |
 | RF-08 | Reservas fijas visibles como ocupadas | PRD §2 | ✅ (resuelto por la API en el estado `fijo`) |
@@ -180,7 +180,7 @@ pantalla habla directamente con la red; todo pasa por una capa de servicios así
 | Cruce de reservas, fijas y bloqueos incorrecto ("donde se decide si la app sirve") | Media | Alto | Función pura `armarGrilla` con tests; la lógica vive en el servidor, no en la app |
 | Doble reserva por pedidos simultáneos | Media | Alto | Índice único + test de dos `POST` simultáneos en los 4 motores |
 | Mala señal en la puerta de la cancha | Alta | Alto | Caché local de reservas/QR; `POST /reservas` idempotente |
-| La IP de la API cambia de red en red | Alta | Medio | `EXPO_PUBLIC_API_URL` en `.env.local` (cada integrante la suya) / API publicada |
+| La IP de la API cambia de red en red | Alta | Medio | La dirección se elige **desde la app** (cuadro *Servidor*), así el mismo APK sirve en cualquier red; `.env.local` queda como alternativa |
 | Push remotas en Android no andan en Expo Go | Alta | Medio | Development build / build de EAS |
 | Dependencias de nube gratis (Render se duerme, Supabase pausa) | Media | Bajo | La app muestra estado de carga; documentado en el README de la API |
 | Alcance del PRD mayor que lo implementado | Alta | Medio | Ver trazabilidad y plan de cierre en [08](08-estado-actual-y-deuda-tecnica.md) |
@@ -195,6 +195,6 @@ pantalla habla directamente con la red; todo pasa por una capa de servicios así
 | Notificaciones | `expo-notifications` | `servicios/notificaciones.ts`, `_layout.tsx` | ✅ push y recordatorio local |
 | Persistencia y red | `expo-sqlite`, `kv-store`, `expo-network` | `(tabs)/index.tsx`, `espacio/[id].tsx`, `servicios/db.ts`, `servicios/*` | ✅ SQLite (reservas y catálogo) y red · `kv-store` guarda el tema elegido (`ThemeProvider`) |
 | Seguridad | `expo-secure-store`, `expo-local-authentication` | `AuthContext`, `app/index.tsx`, `escaner.tsx` | ✅ |
-| Háptica / sensores | `expo-haptics`, `expo-sensors` | `app/index.tsx`, `escaner.tsx` | ✅ háptica · ❌ sensores sin uso |
+| Háptica / sensores | `expo-haptics`, `expo-sensors` | `app/index.tsx`, `escaner.tsx` | ✅ háptica · los sensores son **opcionales** según la cátedra (el GPS, `expo-location`, ya se usa en el mapa) |
 | Sistema de archivos | `expo-file-system` | `servicios/archivos.ts`, `espacio/[id].tsx` | ✅ copia local de foto y video (API nueva `File`/`Paths`) |
 | Multimedia | `expo-video` | `espacio/[id].tsx` | ✅ |

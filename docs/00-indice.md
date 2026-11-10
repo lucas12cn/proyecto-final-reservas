@@ -8,7 +8,7 @@ está hecho y dónde mirar en el código.
 > (commit `3c59b52`) y suma lo que hizo el grupo: la integración de notificaciones push (módulo de
 > dispositivos en la API y servicio de notificaciones en la app), el recordatorio local, el caché sin
 > conexión, el mapa nativo, las pantallas del personal (agenda, bloqueos, reservas fijas y precios),
-> la configuración de EAS, **183 pruebas automáticas** y el CI. Todo lo que se afirma sobre el
+> la configuración de EAS, **215 pruebas automáticas** y el CI. Todo lo que se afirma sobre el
 > código fue verificado leyéndolo y ejecutándolo; lo que no se pudo verificar (comportamiento en un
 > teléfono real, los workflows en GitHub, el build de EAS) se marca como tal. Lo pendiente está en el
 > resumen de [08](08-estado-actual-y-deuda-tecnica.md).

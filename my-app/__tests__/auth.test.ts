@@ -1,6 +1,6 @@
 jest.mock('expo-network', () => ({ getNetworkStateAsync: jest.fn() }));
 jest.mock('expo-secure-store', () => ({ getItemAsync: jest.fn() }));
-jest.mock('../src/servicios/config', () => ({ API_URL: 'http://api.test' }));
+jest.mock('../src/servicios/config', () => ({ apiUrl: () => 'http://api.test' }));
 
 import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';

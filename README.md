@@ -75,8 +75,16 @@ necesitás en el paso siguiente. (Con Docker, buscala con `ipconfig` / `ifconfig
 
 ### 3.2 Configurar la dirección de la API en la app
 
-La app lee la dirección de la API de la variable `EXPO_PUBLIC_API_URL`. Copiá el ejemplo y
-poné la IP de tu computadora (la que imprime la API al arrancar):
+La app necesita saber **en qué IP corre la API** (la que imprime al arrancar). Hay dos formas; si
+usás las dos, **gana la de la app**:
+
+**A. Desde la propia app (recomendada).** En la pantalla de entrada y en el **Perfil** hay un cuadro
+**Servidor** con el botón **Cambiar**: escribí la IP de tu computadora (por ejemplo
+`http://192.168.0.10:3000`), tocá **Probar** (consulta `/salud`) y **Guardar**. Se recuerda al cerrar
+la app, rige **de inmediato** (sin reiniciar Expo ni recompilar) y funciona también en el **APK**. Al
+cambiar de servidor se cierra la sesión (cada servidor tiene sus propias sesiones).
+
+**B. Por archivo.** Copiá el ejemplo y poné tu IP:
 
 ```bash
 cd my-app
@@ -84,13 +92,12 @@ cp .env.example .env.local     # en Windows: copy .env.example .env.local
 # editar .env.local →  EXPO_PUBLIC_API_URL=http://192.168.0.10:3000
 ```
 
-`.env.local` lo ignora git: cada integrante usa su propia IP. Sin ese archivo la app usa
+`.env.local` lo ignora git: cada integrante usa su propia IP. Sin nada configurado la app usa
 `http://192.168.1.6:3000` (valor por defecto de `my-app/src/servicios/config.ts`).
 
-> ⚠️ **Después de crear o cambiar `.env.local`, reiniciá Expo con `npx expo start -c`.** Expo
-> guarda en caché el código ya procesado y las variables `EXPO_PUBLIC_*` se incorporan al
-> procesarlo: sin `-c` la app **sigue usando la IP anterior**. (Se comprobó: sin limpiar el caché,
-> la IP nueva no entra; con `-c`, sí.)
+> ⚠️ **Con la forma B, después de crear o cambiar `.env.local`, reiniciá Expo con
+> `npx expo start -c`.** Expo guarda en caché el código ya procesado: sin `-c` la app **sigue usando
+> la IP anterior** (se comprobó). La forma A no tiene esta trampa.
 
 ### 3.3 Levantar la app
 
@@ -145,43 +152,54 @@ Para que lleguen las notificaciones del servidor:
 
 ## 5. Generar la app con EAS (builds)
 
-La configuración ya está en `my-app/app.json` y `my-app/eas.json`.
+**Qué se entrega:** un **build `preview`** (APK instalable). La **demostración se hace en Expo Go**.
+No se publica en tiendas y **no hace falta publicar la API**: alcanza con la API local.
 
-| Perfil | Qué genera | Para qué | URL de la API |
+La configuración ya está en `my-app/app.json`, `my-app/app.config.js` y `my-app/eas.json`.
+
+| Perfil | Qué genera | Para qué | Tráfico `http://` a la red local |
 |---|---|---|---|
-| `development` | APK con *development client* | Probar con Metro y **recibir push en Android** | La de tu `.env.local` (la sirve Metro) |
-| `preview` | APK instalable | Probar una versión "real" en teléfonos del grupo | `env` de `eas.json` |
-| `production` | AAB (Android) / IPA (iOS) | Entrega y tiendas | `env` de `eas.json` |
+| `preview` | APK instalable | **El build que se entrega** | ✅ permitido |
+| `development` | APK con *development client* | Probar con Metro y **recibir push en Android** | ✅ permitido |
+| `production` | AAB (Android) / IPA (iOS) | No se usa en esta entrega | ❌ bloqueado (exigiría `https://`) |
 
 ### 5.1 Una sola vez
 
 ```bash
 cd my-app
-npm install                    # trae expo-dev-client (agregado a package.json)
+npm install                    # trae expo-dev-client y expo-build-properties
 npm install -g eas-cli         # o usar: npx eas-cli <comando>
 eas login                      # cuenta de expo.dev (gratis)
 eas init                       # crea el proyecto y agrega extra.eas.projectId a app.json (commitear)
 ```
 
-Después, en `my-app/eas.json`, reemplazá `https://REEMPLAZAR-POR-LA-URL-DE-LA-API` por la URL
-pública de la API (por ejemplo la de Render) en los perfiles `preview` y `production`.
+No hace falta tocar `eas.json`: la dirección de la API **se elige en la app**.
 
-> **Tiene que ser `https://`.** Los builds de producción de Android e iOS bloquean el tráfico
-> `http://` sin cifrar. Un build apuntando a `http://192.168.x.x:3000` no va a poder hablar con
-> la API (esto sólo funciona en Expo Go y en el development client).
-
-### 5.2 Generar los builds
+### 5.2 Generar el build y usarlo con la API local
 
 ```bash
-eas build --platform android --profile development   # luego: npx expo start --dev-client
 eas build --platform android --profile preview       # APK: EAS entrega un enlace/QR de descarga
-eas build --platform android --profile production    # AAB para Google Play
-eas build --platform ios --profile production        # requiere cuenta de Apple Developer (paga)
+eas build --platform android --profile development   # (opcional) luego: npx expo start --dev-client
+eas build --platform ios --profile preview           # requiere cuenta de Apple Developer (paga)
 ```
+
+**Cómo habla el APK con la API local**
+
+1. Levantá la API en la notebook (`pnpm dev`) y anotá la IP que imprime.
+2. Instalá el APK en el teléfono, que tiene que estar **en la misma red wifi**.
+3. Abrí la app → **Servidor → Cambiar** → escribí `http://IP:3000` → **Probar** → **Guardar**.
+
+Por qué hace falta: un build de producción **bloquea `http://`**, y la IP de la notebook cambia de
+una red a otra, así que no se puede grabar al compilar. Por eso, en los perfiles `preview` y
+`development` `app.config.js` habilita el tráfico `http` a la red local (Android:
+`usesCleartextTraffic`; iPhone: `NSAllowsLocalNetworking`) y la dirección se elige desde la app. En
+`production` queda bloqueado.
 
 ### 5.3 Notificaciones push en un build
 
-Además del `NOTIFICACIONES=expo` de la API, cada plataforma necesita credenciales:
+**Opcional para esta entrega.** La demostración es en Expo Go, donde Android **no** recibe push
+remotas (desde Expo SDK 53) pero un iPhone sí. Para recibirlas en el APK, además del
+`NOTIFICACIONES=expo` de la API, cada plataforma necesita credenciales:
 
 | Plataforma | Qué hace falta |
 |---|---|
@@ -203,9 +221,12 @@ clave). En Expo Go no hace falta configurar nada. En un **build de Android** hac
    *Environment variables*, o `eas env:create`; ver la documentación de variables de EAS para los
    entornos `preview` y `production`).
 
-`my-app/app.config.js` lee esa variable y la agrega al manifiesto de Android; sin la variable no
-agrega nada y el mapa **no se dibuja** en los builds de Android. La clave no se escribe en el
-repositorio.
+`my-app/app.config.js` lee esa variable y la agrega al manifiesto de Android. La clave no se escribe
+en el repositorio.
+
+**La clave es opcional para esta entrega.** Sin ella, el APK **no dibuja el mapa**: la pantalla
+muestra, en su lugar, la **lista de complejos** con la distancia (si hay ubicación) y el botón **Cómo
+llegar**. En Expo Go y en iPhone el mapa funciona sin clave.
 
 ### 5.5 Identidad de la app
 
@@ -215,9 +236,8 @@ repositorio.
 | Identificador Android / iOS | `com.villaguay.reservasdeportivas` | `android.package`, `ios.bundleIdentifier` |
 | Esquema de enlaces | `reservasvillaguay` | `scheme` |
 
-> **El identificador no se puede cambiar una vez publicada la app en Google Play.** Si prefieren
-> otro (por ejemplo con el dominio de la facultad), cámbienlo en `app.json` **antes** del primer
-> build de producción.
+> Si prefieren otro identificador (por ejemplo con el dominio de la facultad), cámbienlo en
+> `app.json` **antes del primer build**: después de publicar en una tienda ya no se puede cambiar.
 
 Los permisos (cámara, ubicación, galería, Face ID) tienen mensajes en castellano y se piden sólo
 los necesarios (sin micrófono ni ubicación en segundo plano). Los íconos y la pantalla de inicio
@@ -246,7 +266,7 @@ siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
 | `npx expo config --type introspect` | Muestra permisos y `Info.plist`/manifiesto resultantes (sirve para revisar `app.json`) |
 | `npm run lint` | Lint de Expo |
 | `npx tsc --noEmit` | Chequeo de tipos (incluye las pruebas) |
-| `npm test` | **183 pruebas automáticas** (≈ 8 s). `npm run test:watch` las repite al guardar |
+| `npm test` | **215 pruebas automáticas** (≈ 8 s). `npm run test:watch` las repite al guardar |
 
 ### Integración continua
 
@@ -259,7 +279,7 @@ siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
 
 | Síntoma | Causa probable y solución |
 |---|---|
-| La app muestra listas vacías o "Sin conexión a internet o red local" | `EXPO_PUBLIC_API_URL` (`.env.local`) no es la IP de tu computadora, **no reiniciaste Expo con `-c`** (el caso más frecuente), la API está apagada o están en redes wifi distintas |
+| La app muestra listas vacías o "Sin conexión a internet o red local" | La IP no es la de tu computadora (cambiala en **Servidor**, o en `.env.local` y reiniciá con `npx expo start -c`), la API está apagada o están en redes wifi distintas |
 | `El email o la contraseña no son correctos.` con `emiliano@mail.com` | La contraseña correcta es `villaguay2026` (todo en minúscula) |
 | `NO_AUTENTICADO` después de `pnpm db:reiniciar` | El usuario se borró y se recreó: cerrar sesión e ingresar de nuevo |
 | `EADDRINUSE :::3000` | Ya hay una API corriendo en el puerto 3000 |
@@ -267,7 +287,8 @@ siguen siendo los de la plantilla de Expo: reemplazá `assets/images/icon.png`,
 | `Could not locate the bindings file` (better-sqlite3) | Repetir `pnpm install` con Node 24, o usar Docker |
 | No llegan las push | `NOTIFICACIONES=expo`, teléfono real, permiso concedido y, en Android, development build |
 | El mapa no se dibuja | En Expo Go: revisá la conexión y el permiso de ubicación. En un **build de Android**: falta la clave `GOOGLE_MAPS_API_KEY` (ver §5.4) |
-| El build de `preview`/`production` no se conecta a la API | La URL de `eas.json` debe ser `https://` y apuntar a la API publicada |
+| El **APK** no carga datos | Abrir la app → **Servidor** → poner la IP de la notebook → **Probar**. Teléfono y notebook en la misma wifi, API encendida y firewall del puerto 3000 abierto |
+| En el APK no se ve el mapa, sino una lista de complejos | Es lo esperado sin la clave de Google Maps (§5.4); en Expo Go y en iPhone sí se ve el mapa |
 | `npm ci` o `pnpm install --frozen-lockfile` falla (también en el CI) | Lockfile desincronizado con `package.json`: correr `npm install` (app) o `pnpm install` (API) y commitear el lockfile |
 
 ## 8. Documentación para desarrolladores

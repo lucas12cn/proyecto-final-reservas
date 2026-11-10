@@ -7,13 +7,14 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://REEMPLAZAR-POR-LA-URL-DE-LA-API"
+      "android": {
+        "buildType": "apk"
       }
     },
     "production": {
@@ -22,8 +23,5 @@
         "EXPO_PUBLIC_API_URL": "https://REEMPLAZAR-POR-LA-URL-DE-LA-API"
       }
     }
-  },
-  "submit": {
-    "production": {}
   }
 }

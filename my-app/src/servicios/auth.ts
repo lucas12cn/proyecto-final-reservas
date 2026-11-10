@@ -1,11 +1,8 @@
 import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';
-import { API_URL as BASE_URL } from './config';
+import { apiUrl } from './config';
 import { errorSinSesion, lanzarSiError } from './errores';
 
-// BASE_URL se sigue exportando (la usa notificaciones.ts); ahora viene de config.ts.
-export { BASE_URL };
-const AUTH_URL = `${BASE_URL}/auth`;
 
 const verificarConexion = async () => {
   const red = await Network.getNetworkStateAsync();
@@ -14,7 +11,7 @@ const verificarConexion = async () => {
 
 export const iniciarSesionApi = async (email: string, contrasena: string) => {
   await verificarConexion();
-  const respuesta = await fetch(`${AUTH_URL}/ingreso`, {
+  const respuesta = await fetch(`${apiUrl()}/auth/ingreso`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, contrasena })
@@ -27,7 +24,7 @@ export const iniciarSesionApi = async (email: string, contrasena: string) => {
 
 export const registrarUsuarioApi = async (nombre: string, email: string, telefono: string, contrasena: string) => {
   await verificarConexion();
-  const respuesta = await fetch(`${AUTH_URL}/registro`, {
+  const respuesta = await fetch(`${apiUrl()}/auth/registro`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ nombre, email, telefono, contrasena })
@@ -44,7 +41,7 @@ export const actualizarPerfilApi = async (datos: { nombre?: string; telefono?: s
   const token = await SecureStore.getItemAsync('tokenReserva');
   if (!token) throw errorSinSesion();
 
-  const respuesta = await fetch(`${BASE_URL}/yo`, {
+  const respuesta = await fetch(`${apiUrl()}/yo`, {
     method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -63,7 +60,7 @@ export const registrarDispositivoApi = async (tokenExpo: string, plataforma: str
   const token = await SecureStore.getItemAsync('tokenReserva');
   if (!token) return; // Sin sesión no hay a quién anotarle el teléfono
 
-  const respuesta = await fetch(`${BASE_URL}/dispositivos`, {
+  const respuesta = await fetch(`${apiUrl()}/dispositivos`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -79,7 +76,7 @@ export const darDeBajaDispositivoApi = async (tokenExpo: string) => {
   const token = await SecureStore.getItemAsync('tokenReserva');
   if (!token) return;
 
-  const respuesta = await fetch(`${BASE_URL}/dispositivos/${encodeURIComponent(tokenExpo)}`, {
+  const respuesta = await fetch(`${apiUrl()}/dispositivos/${encodeURIComponent(tokenExpo)}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` }
   });

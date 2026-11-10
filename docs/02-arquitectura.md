@@ -165,7 +165,9 @@ my-app/src/
 ├── providers/ThemeProvider.tsx  Estado global del tema
 ├── hooks/use-theme.ts        `useTema()` (acceso a la paleta)
 ├── servicios/                Única capa que habla con la red
-│   ├── config.ts             API_URL (variable EXPO_PUBLIC_API_URL)
+│   ├── config.ts             apiUrl(): dirección de la API (elegida en la app > EXPO_PUBLIC_API_URL > por defecto)
+│   ├── servidor.ts           probarServidor(): GET /salud
+│   ├── mapa.ts               mapaDisponible(): ¿se puede dibujar el mapa nativo?
 │   ├── errores.ts            ErrorDeApi, lanzarSiError, sesión vencida
 │   ├── auth.ts               /auth/*, /yo, /dispositivos
 │   ├── reservas.ts           /espacios, /deportes, /reservas, /ingresos, favoritos
@@ -175,6 +177,7 @@ my-app/src/
 │   ├── archivos.ts           Copia local de fotos/videos (expo-file-system nuevo)
 │   └── db.ts                 SQLite: catálogo de espacios y deportes (respaldo sin conexión)
 ├── componentes/personal.tsx  Piezas de formulario del personal (SelectorDia, Paso, ListaEspacios)
+├── componentes/SelectorServidor.tsx  Cuadro "Servidor": ver y cambiar la dirección de la API
 ├── tipos/index.ts            Tipos del PRD (copia literal)
 ├── tipos/personal.ts         Bloqueo (tipo que agrega la API; no es del PRD)
 └── mocks/datos.ts            Datos falsos del PRD (sin uso actual)
@@ -217,6 +220,7 @@ varias pantallas llaman directamente a SQLite o `expo-file-system`.
 | Foto principal y video de la ficha | Directorio de documentos del teléfono (`esp_img_<id>_<hash>.jpg`, `esp_vid_<id>_<hash>.mp4`) | `servicios/archivos.ts`, en segundo plano | `espacio/[id].tsx` |
 | Recordatorios de 2 h | Notificaciones programadas del sistema (`recordatorio-<reservaId>`) | `servicios/notificaciones.ts` | el sistema operativo |
 | Galería de la cancha | SQLite `canchas_galeria.db`, tabla `galeria` | `espacio/[id].tsx` | `espacio/[id].tsx` |
+| Servidor elegido (`apiUrlPersonalizada`) | `expo-sqlite/kv-store` | `SelectorServidor` (vía `config.ts`) | `config.ts` al arrancar; `apiUrl()` en cada pedido |
 | Tema elegido | `expo-sqlite/kv-store` (clave `modoTema`) y estado de React en `ThemeProvider` | `perfil.tsx` | `ThemeProvider` al arrancar (lectura síncrona) |
 | Sesión y usuario actuales en memoria | `useState` en `AuthContext` | `AuthContext` | `useAuth()` |
 
@@ -343,7 +347,7 @@ El diseño completo está en [05](05-notificaciones-push.md).
 | Token en el teléfono | `expo-secure-store` (nunca `kv-store`, como exige el PRD) | `AuthContext.tsx` |
 | Acceso al escáner | Sólo encargado/administrador (pantalla e ícono) + huella/PIN si el teléfono la tiene; la API valida el rol | `escaner.tsx`, `(tabs)/_layout.tsx` |
 | Producción | Con `ENTORNO=publicado` la API no arranca con SQLite, archivos en disco, `JWT_SECRETO` débil o simulación activa | `config/environment.ts` |
-| Transporte | La app usa `http://` en desarrollo; producción debería ser `https://` | — |
+| Transporte | `http://` sólo hacia la **red local** y sólo en Expo Go y en los builds `preview`/`development` (`usesCleartextTraffic` / `NSAllowsLocalNetworking`, definidos en `app.config.js`). En `production` queda bloqueado: exigiría `https://` | `app.config.js` |
 | Sesión vencida | Si la API responde `NO_AUTENTICADO`, la app cierra la sesión y vuelve al ingreso | `servicios/errores.ts`, `AuthContext.tsx` |
 
 ## 7. Entornos y despliegue
@@ -354,12 +358,14 @@ El diseño completo está en [05](05-notificaciones-push.md).
 | Docker | SQLite o PostgreSQL / MySQL / MariaDB | disco o S3Proxy | `docker compose up` (+ `-f compose.<motor>.yaml`) |
 | Publicado | PostgreSQL (Supabase, esquema `api`) | S3 (Supabase Storage) | Render (`render.yaml`) |
 
-La app se entrega con **build de producción de EAS** (PRD). `my-app/eas.json` define tres
-perfiles: `development` (APK con development client), `preview` (APK interno) y `production`
-(AAB / IPA, con `autoIncrement` del número de versión). La URL de la API de los builds se inyecta
-con `env.EXPO_PUBLIC_API_URL` de cada perfil (el `.env.local` no viaja a EAS) y **debe ser
-`https://`**: los builds de producción bloquean `http://`. Pasos y credenciales de push en el
-[README §5](../README.md).
+**Entrega acordada con la cátedra:** un **build `preview`** (APK) y una **demostración en Expo Go**,
+con la **API local** (no se publica la API ni la app). `my-app/eas.json` define tres perfiles:
+`development` (APK con development client), `preview` (APK interno, **el que se entrega**) y
+`production` (AAB / IPA, no se usa). Como un build de producción bloquea `http://` y la IP de la
+notebook cambia de una red a otra, en `preview` y `development` `app.config.js` permite el tráfico
+`http` a la red local y **la dirección de la API se elige desde la app** (cuadro *Servidor*, guardado en
+`kv-store`): no hace falta recompilar para cambiar de red. Pasos y credenciales opcionales (push,
+Google Maps) en el [README §5](../README.md).
 
 ## 8. Decisiones de diseño y sus razones
 

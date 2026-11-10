@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
+import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Linking, FlatList } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { obtenerEspacios } from '../../servicios/reservas';
+import { mapaDisponible } from '../../servicios/mapa';
 import { distanciaEnKm, idDelMasCercano, textoDistancia, Punto } from '../../servicios/geo';
 import { useTema } from '../../hooks/use-theme';
 
@@ -104,6 +105,63 @@ export default function MapaScreen() {
   const comoLlegar = (c: Complejo) => {
     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${c.latitud},${c.longitud}`);
   };
+
+  // Un APK de Android compilado sin la clave de Google Maps no puede dibujar el mapa: se muestran los
+  // mismos complejos como lista, con la distancia y "Cómo llegar" (que abre Google Maps).
+  if (!mapaDisponible()) {
+    const ordenados = [...complejos].sort((a, b) =>
+      ubicacion
+        ? distanciaEnKm(ubicacion, { latitude: a.latitud, longitude: a.longitud }) -
+          distanciaEnKm(ubicacion, { latitude: b.latitud, longitude: b.longitud })
+        : 0
+    );
+    return (
+      <View style={[styles.container, { backgroundColor: paleta.background }]}>
+        <View style={[styles.cabeceraFlotante, { backgroundColor: paleta.surface }]}>
+          <TouchableOpacity onPress={() => router.back()} style={{ padding: 5 }}>
+            <Ionicons name="arrow-back" size={24} color={paleta.text} />
+          </TouchableOpacity>
+          <Text style={[styles.tituloCabecera, { color: paleta.text }]}>Complejos</Text>
+          <View style={{ width: 34 }} />
+        </View>
+
+        {cargando ? (
+          <View style={styles.centrado}><ActivityIndicator size="large" color={paleta.accent} /></View>
+        ) : (
+          <FlatList
+            data={ordenados}
+            keyExtractor={(c) => c.id}
+            contentContainerStyle={{ paddingTop: 120, paddingHorizontal: 16, paddingBottom: 24 }}
+            ListHeaderComponent={
+              <Text style={{ color: paleta.muted, marginBottom: 14, fontSize: 13 }}>
+                Esta versión de la app no trae el mapa (falta la clave de Google Maps). Podés ver los complejos y cómo llegar.
+              </Text>
+            }
+            ListEmptyComponent={
+              <Text style={{ color: paleta.muted, textAlign: 'center', marginTop: 40 }}>
+                No hay complejos para mostrar. Probá de nuevo con conexión.
+              </Text>
+            }
+            renderItem={({ item: c }) => (
+              <View style={[styles.tarjetaLista, { backgroundColor: paleta.surface, borderColor: paleta.border }]}>
+                <Text style={{ color: paleta.text, fontSize: 17, fontWeight: 'bold' }}>{c.nombre}</Text>
+                <Text style={{ color: paleta.muted, marginTop: 2 }}>
+                  {c.canchas.length} {c.canchas.length === 1 ? 'cancha' : 'canchas'}
+                  {ubicacion ? ` · a ${textoDistancia(distanciaEnKm(ubicacion, { latitude: c.latitud, longitude: c.longitud }))}` : ''}
+                  {c.id === masCercanoId ? ' · El más cercano' : ''}
+                </Text>
+                <Text style={{ color: paleta.muted, fontSize: 12, marginTop: 6 }} numberOfLines={3}>{c.canchas.join(' · ')}</Text>
+                <TouchableOpacity style={[styles.botonLlegar, { backgroundColor: paleta.accent }]} onPress={() => comoLlegar(c)}>
+                  <Ionicons name="navigate" size={18} color="#fff" />
+                  <Text style={styles.textoBotonLlegar}>Cómo llegar</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        )}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -237,5 +295,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   textoBotonLlegar: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  tarjetaLista: { borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 12 },
   aviso: { position: 'absolute', left: 20, right: 20, bottom: 40, padding: 14, borderRadius: 12, zIndex: 10 },
 });

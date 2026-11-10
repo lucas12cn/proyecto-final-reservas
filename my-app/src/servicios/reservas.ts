@@ -2,7 +2,7 @@ import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';
 import { Espacio, Deporte, Reserva, ReservaFija, Turno, Usuario } from '../tipos';
 import { Bloqueo } from '../tipos/personal';
-import { API_URL } from './config';
+import { apiUrl } from './config';
 import { errorSinSesion, lanzarSiError } from './errores';
 import {
   guardarEspaciosEnTelefono, leerEspaciosDelTelefono,
@@ -36,7 +36,7 @@ const recuperar = <T,>(leer: () => T[]): T[] => {
 export const obtenerEspacios = async (): Promise<Espacio[]> => {
   try {
     await verificarConexion();
-    const respuesta = await fetch(`${API_URL}/espacios`);
+    const respuesta = await fetch(`${apiUrl()}/espacios`);
     await lanzarSiError(respuesta, 'Error al obtener los espacios');
     const json = await respuesta.json();
     const espacios: Espacio[] = json.datos; // La API envuelve la respuesta en "datos"
@@ -51,7 +51,7 @@ export const obtenerEspacios = async (): Promise<Espacio[]> => {
 export const obtenerEspacioPorId = async (id: string): Promise<Espacio | null> => {
   try {
     await verificarConexion();
-    const respuesta = await fetch(`${API_URL}/espacios/${id}`);
+    const respuesta = await fetch(`${apiUrl()}/espacios/${id}`);
     await lanzarSiError(respuesta, 'Error al obtener el detalle del espacio');
     const json = await respuesta.json();
     return json.datos;
@@ -64,7 +64,7 @@ export const obtenerEspacioPorId = async (id: string): Promise<Espacio | null> =
 export const obtenerDeportes = async (): Promise<Deporte[]> => {
   try {
     await verificarConexion();
-    const respuesta = await fetch(`${API_URL}/deportes`);
+    const respuesta = await fetch(`${apiUrl()}/deportes`);
     await lanzarSiError(respuesta, 'Error al obtener los deportes');
     const json = await respuesta.json();
     const deportes: Deporte[] = json.datos || [];
@@ -80,7 +80,7 @@ export const obtenerDeportes = async (): Promise<Deporte[]> => {
 export const obtenerTurnosEspacio = async (espacioId: string, fecha?: string): Promise<Turno[]> => {
   await verificarConexion();
 
-  let url = `${API_URL}/espacios/${espacioId}/turnos`;
+  let url = `${apiUrl()}/espacios/${espacioId}/turnos`;
   if (fecha) url += `?fecha=${fecha}`;
 
   const respuesta = await fetch(url);
@@ -95,7 +95,7 @@ export const crearReserva = async (turnoId: string, cantidadPersonas: number): P
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/reservas`, {
+  const respuesta = await fetch(`${apiUrl()}/reservas`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -115,7 +115,7 @@ export const cancelarReserva = async (reservaId: string) => {
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/reservas/${reservaId}/cancelacion`, {
+  const respuesta = await fetch(`${apiUrl()}/reservas/${reservaId}/cancelacion`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -134,7 +134,7 @@ export const obtenerMisReservas = async (cuando: 'proximas' | 'pasadas') => {
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/yo/reservas?cuando=${cuando}`, {
+  const respuesta = await fetch(`${apiUrl()}/yo/reservas?cuando=${cuando}`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
 
@@ -152,7 +152,7 @@ export const obtenerMisFavoritos = async (): Promise<Espacio[]> => {
     if (!token) return [];
 
     // La lista de ids de favoritos viene dentro del usuario (GET /yo → espaciosFavoritos)
-    const respuesta = await fetch(`${API_URL}/yo`, {
+    const respuesta = await fetch(`${apiUrl()}/yo`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache' }
     });
     await lanzarSiError(respuesta, 'No se pudieron cargar tus favoritos');
@@ -175,7 +175,7 @@ export const alternarFavoritoApi = async (espacioId: string, marcarComoFavorito:
   const token = await tokenObligatorio();
 
   const metodo = marcarComoFavorito ? 'PUT' : 'DELETE';
-  const respuesta = await fetch(`${API_URL}/yo/espacios-favoritos/${espacioId}`, {
+  const respuesta = await fetch(`${apiUrl()}/yo/espacios-favoritos/${espacioId}`, {
     method: metodo,
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -196,7 +196,7 @@ export const registrarIngresoApi = async (codigoQr: string, espacioId: string): 
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/ingresos`, {
+  const respuesta = await fetch(`${apiUrl()}/ingresos`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -222,7 +222,7 @@ const traerTodas = async <T,>(ruta: string, consulta: string, token: string, err
   const todos: T[] = [];
   let pagina = 1;
   while (true) {
-    const respuesta = await fetch(`${API_URL}${ruta}?${consulta}&pagina=${pagina}&porPagina=100`, {
+    const respuesta = await fetch(`${apiUrl()}${ruta}?${consulta}&pagina=${pagina}&porPagina=100`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     await lanzarSiError(respuesta, errorPorDefecto);
@@ -249,7 +249,7 @@ export const marcarAusenteApi = async (reservaId: string): Promise<Reserva> => {
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/reservas/${reservaId}/ausente`, {
+  const respuesta = await fetch(`${apiUrl()}/reservas/${reservaId}/ausente`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -268,7 +268,7 @@ export const obtenerUsuarioApi = async (usuarioId: string): Promise<Usuario> => 
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/usuarios/${usuarioId}`, {
+  const respuesta = await fetch(`${apiUrl()}/usuarios/${usuarioId}`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   await lanzarSiError(respuesta, 'No se pudo cargar el contacto');
@@ -306,7 +306,7 @@ export const crearBloqueosApi = async (nuevo: NuevoBloqueo): Promise<Bloqueo[]> 
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/bloqueos`, {
+  const respuesta = await fetch(`${apiUrl()}/bloqueos`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -331,7 +331,7 @@ export const quitarBloqueoApi = async (bloqueoId: string): Promise<void> => {
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/bloqueos/${bloqueoId}`, {
+  const respuesta = await fetch(`${apiUrl()}/bloqueos/${bloqueoId}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` }
   });
@@ -361,7 +361,7 @@ export const crearFijaApi = async (nueva: NuevaFija): Promise<ReservaFija> => {
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/fijas`, {
+  const respuesta = await fetch(`${apiUrl()}/fijas`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -379,7 +379,7 @@ export const darDeBajaFijaApi = async (fijaId: string): Promise<void> => {
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/fijas/${fijaId}`, {
+  const respuesta = await fetch(`${apiUrl()}/fijas/${fijaId}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` }
   });
@@ -391,7 +391,7 @@ export const cambiarPrecioApi = async (espacioId: string, precioPorHora: number)
   await verificarConexion();
   const token = await tokenObligatorio();
 
-  const respuesta = await fetch(`${API_URL}/espacios/${espacioId}`, {
+  const respuesta = await fetch(`${apiUrl()}/espacios/${espacioId}`, {
     method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
