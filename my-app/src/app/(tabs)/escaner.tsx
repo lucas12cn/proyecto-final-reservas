@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, ScrollView, ActivityIndicator, AppState, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -16,7 +16,7 @@ export default function EscanerScreen() {
   const { usuario } = useAuth();
   // Sólo el personal (encargado o administrador) puede validar ingresos; la API también lo exige.
   const esPersonal = usuario?.rol === 'encargado' || usuario?.rol === 'administrador';
-  const [permiso, pedirPermiso] = useCameraPermissions();
+  const [permiso, pedirPermiso, consultarPermiso] = useCameraPermissions();
   const [escaneando, setEscaneando] = useState(false);
   const [autenticado, setAutenticado] = useState(false);
   
@@ -28,6 +28,15 @@ export default function EscanerScreen() {
   useEffect(() => {
     if (esPersonal) inicializarEscaner();
   }, [esPersonal]);
+
+  // Si el usuario habilita la cámara desde los ajustes, al volver a la app hay que releer el permiso.
+  useEffect(() => {
+    if (permiso?.granted) return;
+    const suscripcion = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') consultarPermiso();
+    });
+    return () => suscripcion.remove();
+  }, [permiso?.granted, consultarPermiso]);
 
   const inicializarEscaner = async () => {
     // 1. Validamos la identidad
@@ -89,28 +98,45 @@ export default function EscanerScreen() {
     );
   }
 
-  // Si el permiso aún no está concedido (todavía no se determinó o fue denegado previamente)
-  if (!permiso.granted) {
-    // Si el objeto permiso existe pero granted es false o undefined, mostramos el mensaje + botón
-    if (permiso) {
-      return (
-        <View style={[estilos.centrado, { backgroundColor: paleta.background }]}>
-          <Ionicons name="camera-outline" size={60} color={paleta.muted} style={{ marginBottom: 20 }} />
-          <Text style={{ color: paleta.text, textAlign: 'center', marginBottom: 20, fontSize: 16, paddingHorizontal: 20 }}>
-            El encargado necesita acceso a la cámara para validar las reservas mediante código QR.
-          </Text>
-          <TouchableOpacity style={[estilos.botonPermiso, { backgroundColor: paleta.accent }]} onPress={pedirPermiso}>
-            <Text style={estilos.textoBotonPermiso}>Otorgar Permiso</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={{ marginTop: 20 }} onPress={() => router.back()}>
-            <Text style={{ color: paleta.muted }}>Volver al inicio</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    // Si permiso es undefined/null (aún no se determinó), mostramos indicador de carga
+  // useCameraPermissions devuelve null mientras consulta el permiso: mostramos carga.
+  if (!permiso) {
     return (
-      <View style={[estilos.centrado, { backgroundColor: paleta.background }]} />
+      <View style={[estilos.centrado, { backgroundColor: paleta.background }]}>
+        <ActivityIndicator size="large" color={paleta.accent} />
+      </View>
+    );
+  }
+
+  // Permiso determinado pero no concedido: mensaje + botón para otorgarlo.
+  if (!permiso.granted) {
+    // Android 11+ y iOS dejan de mostrar el diálogo después de una negativa: sólo queda Ajustes.
+    const bloqueado = !permiso.canAskAgain && Platform.OS !== 'web';
+    const otorgarPermiso = async () => {
+      if (bloqueado) {
+        await Linking.openSettings();
+        return;
+      }
+      await pedirPermiso();
+    };
+
+    return (
+      <View style={[estilos.centrado, { backgroundColor: paleta.background }]}>
+        <Ionicons name="camera-outline" size={60} color={paleta.muted} style={{ marginBottom: 20 }} />
+        <Text style={{ color: paleta.text, textAlign: 'center', marginBottom: 20, fontSize: 16, paddingHorizontal: 20 }}>
+          El encargado necesita acceso a la cámara para validar las reservas mediante código QR.
+        </Text>
+        <TouchableOpacity style={[estilos.botonPermiso, { backgroundColor: paleta.accent }]} onPress={otorgarPermiso}>
+          <Text style={estilos.textoBotonPermiso}>{bloqueado ? 'Abrir ajustes' : 'Otorgar Permiso'}</Text>
+        </TouchableOpacity>
+        {bloqueado && (
+          <Text style={{ color: paleta.muted, textAlign: 'center', marginTop: 12, paddingHorizontal: 24 }}>
+            Habilitá la cámara desde los ajustes del sistema.
+          </Text>
+        )}
+        <TouchableOpacity style={{ marginTop: 20 }} onPress={() => router.back()}>
+          <Text style={{ color: paleta.muted }}>Volver al inicio</Text>
+        </TouchableOpacity>
+      </View>
     );
   }
   // Si granted es true, continuamos con el escáner (cae al return de abajo)

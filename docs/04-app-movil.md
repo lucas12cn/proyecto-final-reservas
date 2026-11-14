@@ -456,7 +456,10 @@ Pantalla clave del requisito offline.
 2. **`inicializarEscaner()`:** si hay huella/PIN, exige `authenticateAsync`; luego carga los
    espacios para que el encargado elija **qué cancha controla**.
 3. **Permiso de cámara** con `useCameraPermissions()`; si no está concedido, muestra una
-   pantalla explicativa con "Otorgar permiso".
+   pantalla explicativa con "Otorgar permiso". Si el sistema ya no permite volver a preguntar
+   (`canAskAgain === false`, típico en Android 11+ después de una negativa), el botón pasa a
+   "Abrir ajustes" y lleva a los ajustes de la app. Al volver al frente se reconsulta el permiso
+   (`AppState` + `consultarPermiso`), así el escáner aparece sin salir de la pantalla.
 4. **`CameraView`** a pantalla completa, sólo `qr` (`barcodeTypes: ["qr"]`).
    `onBarcodeScanned` se desactiva mientras `escaneando` es `true` (evita lecturas repetidas).
 5. **`manejarEscaneo({ data })`:** llama a `registrarIngresoApi(data, espacioSeleccionado)`, que
