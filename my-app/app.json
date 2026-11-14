@@ -72,7 +72,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Elegís fotos de tu galería para reportar el estado de una cancha.",
-          "cameraPermission": false,
+          "cameraPermission": "Usamos la cámara para escanear el código QR de las reservas.",
           "microphonePermission": false
         }
       ],

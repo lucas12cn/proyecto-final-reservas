@@ -460,6 +460,9 @@ Pantalla clave del requisito offline.
    (`canAskAgain === false`, típico en Android 11+ después de una negativa), el botón pasa a
    "Abrir ajustes" y lleva a los ajustes de la app. Al volver al frente se reconsulta el permiso
    (`AppState` + `consultarPermiso`), así el escáner aparece sin salir de la pantalla.
+   Para que Android muestre el diálogo, `android.permission.CAMERA` debe estar en el manifiesto:
+   no poner `cameraPermission: false` en el plugin `expo-image-picker` (lo elimina). Ese cambio
+   de `app.json` exige reconstruir el APK o el dev client.
 4. **`CameraView`** a pantalla completa, sólo `qr` (`barcodeTypes: ["qr"]`).
    `onBarcodeScanned` se desactiva mientras `escaneando` es `true` (evita lecturas repetidas).
 5. **`manejarEscaneo({ data })`:** llama a `registrarIngresoApi(data, espacioSeleccionado)`, que

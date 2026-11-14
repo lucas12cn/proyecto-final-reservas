@@ -28,4 +28,6 @@ jobs:
       - name: Pruebas automáticas
         run: npm test -- --ci
       - name: Configuración de Expo (permisos, plugins, app.config.js)
-        run: npx expo config --type introspect > /dev/null
+        run: |
+          npx expo config --type introspect --json > "$RUNNER_TEMP/expo-config.json"
+          node scripts/verificar-permisos-android.mjs "$RUNNER_TEMP/expo-config.json"

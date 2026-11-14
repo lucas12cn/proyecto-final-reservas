@@ -414,6 +414,7 @@ del código, los que conviene mirar primero.
 | Un **modal** (bloqueos, fijas, precios) queda tapado por el teclado en Android | `KeyboardAvoidingView` sin comportamiento en Android | Los `<KeyboardAvoidingView>` de `bloqueos.tsx`, `fijas.tsx`, `precios.tsx` |
 | El **botón "atrás"** de Android vuelve a la pantalla de entrada | Dos rutas resuelven a `/` (D-12) | `app/index.tsx` y `app/(tabs)/index.tsx`; se navega siempre con `router.replace('/(tabs)')` |
 | El **escáner** no abre la cámara | Permiso denegado o bloqueado (el botón cambia a "Abrir ajustes"), o el teléfono no tiene huella enrolada | `(tabs)/escaner.tsx`, `inicializarEscaner()` y `otorgarPermiso()` |
+| En el **APK** "Otorgar Permiso" no muestra el diálogo y Ajustes no lista la cámara | `expo-image-picker` con `cameraPermission: false` elimina `CAMERA` del manifiesto | `app.json`; reconstruir el build; CI lo verifica con `scripts/verificar-permisos-android.mjs` |
 | En el **APK** se ve una lista de complejos y no el mapa | Es lo esperado sin `GOOGLE_MAPS_API_KEY` (B-17) | P-11; `app.config.js`; `servicios/mapa.ts` |
 | `getExpoPushTokenAsync` falla | Falta `projectId` (`eas init`) o Android con Expo Go | `registrarParaPush()` en `notificaciones.ts` |
 | La **grilla** no muestra "Hoy" bien de noche | (corregido) fecha local en vez de UTC | Caso T-29; `aFechaLocal` en `servicios/turnos.ts` |
